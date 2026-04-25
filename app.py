@@ -379,7 +379,7 @@ if st.session_state.load_dinas:
                 if st.button("💾 Simpan SIPD"):
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
 
-                       data_insert = [
+                    data_insert = [
                             {
                                 "dinas": match,
                                 "kode_rekening": r["kode"],
@@ -393,7 +393,7 @@ if st.session_state.load_dinas:
                         for i in range(0, len(data_insert), 500):
                             supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
 
-                    st.rerun()
+                    st.rerun()  
 
 # =========================
 # PERBANDINGAN + EXPORT (FINAL)
