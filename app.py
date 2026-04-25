@@ -296,7 +296,7 @@ if st.session_state.load_dinas:
         df_sipd = pd.DataFrame(data_sipd)
         
         total_db = df_sipd["saldo_akhir"].astype(float).sum() if not df_sipd.empty else 0
-        sudah_simpan_sipd = total_db > 0
+        st.session_state.sudah_simpan_sipd = total_db > 0
 
         res_siap = supabase.table("neraca_siap")\
             .select("saldo_akhir")\
@@ -307,15 +307,15 @@ if st.session_state.load_dinas:
 
         st.subheader("📥 Neraca SIPD")
 
-        if sudah_simpan_sipd and not st.session_state.mode_revisi_sipd:
+        if st.session_state.sudah_simpan_sipd and not st.session_state.mode_revisi_sipd:
 
             st.info(f"Total DB: Rp {format_rupiah(total_db)}")
 
             if st.button("🔄 Upload Ulang SIPD"):
                 st.session_state.mode_revisi_sipd = True
                 st.session_state.trigger_revisi_sipd += 1
+                st.session_state.sudah_simpan_sipd = False   # 🔥 TAMBAH INI
                 st.rerun()
-
             if st.session_state.sudah_simpan_siap:
                 if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
                     st.session_state.hitung_selisih = True
@@ -377,6 +377,7 @@ if st.session_state.load_dinas:
                 """, unsafe_allow_html=True)
 
                 if st.button("💾 Simpan SIPD"):
+                     st.write("DEBUG: tombol kepencet")
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
 
                     data_insert = [
