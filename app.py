@@ -564,7 +564,7 @@ if st.session_state.boleh_simpan:
             .order("kode_bas") \
             .execute()
     
-        if st.session_state.sudah_simpan_jurnal and res.data:
+    if st.session_state.sudah_simpan_jurnal and res.data:
     
             df_export = pd.DataFrame(res.data)
     
