@@ -390,8 +390,8 @@ if st.session_state.load_dinas:
                         ]
                         
                         # 🔥 insert bertahap
-                        for i in range(0, len(data_insert), 500):
-                            supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
+                    for i in range(0, len(data_insert), 500):
+                        supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
 
                     st.rerun()  
 
