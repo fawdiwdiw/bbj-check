@@ -383,238 +383,238 @@ if st.session_state.load_dinas:
                     st.success("✅ Data berhasil disimpan!")
                     st.rerun() 
 
-                             
-    # =========================
-    # TOMBOL HITUNG SELISIH
-    # =========================
-    if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
-        if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
-            st.session_state.hitung_selisih = True
-            st.session_state.boleh_simpan = True
-            st.session_state.sudah_simpan_jurnal = False
-            st.rerun()
-    
-    # =========================
-    # STOP JIKA BELUM DIKLIK
-    # =========================
-    if not st.session_state.get("hitung_selisih"):
-        st.stop()
-    
-    # =========================
-    # AMBIL DATA (WAJIB DI LUAR!)
-    # =========================
-    df1 = pd.DataFrame(get_siap(st.session_state.dinas))
-    df2 = pd.DataFrame(get_sipd(st.session_state.dinas))
-    
-    # =========================
-    # HANDLE SIAP
-    # =========================
-    if df1.empty:
-        df1 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_siap", "siap"])
-    else:
-        df1 = df1.rename(columns={
-            "saldo_akhir": "siap",
-            "nama_rekening": "nama_rekening_siap"
-        })
-    
-    # =========================
-    # HANDLE SIPD
-    # =========================
-    if df2.empty:
-        df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_sipd", "sipd"])
-    else:
-        df2 = df2.rename(columns={
-            "saldo_akhir": "sipd",
-            "nama_rekening": "nama_rekening_sipd"
-        })
-    
-    # =========================
-    # PASTIKAN NUMERIC
-    # =========================
-    df1["siap"] = pd.to_numeric(df1.get("siap", 0), errors="coerce").fillna(0)
-    df2["sipd"] = pd.to_numeric(df2.get("sipd", 0), errors="coerce").fillna(0)
-    
-    # =========================
-    # MERGE
-    # =========================
-    df = pd.merge(df1, df2, on="kode_rekening", how="outer")
-    
-    # =========================
-    # GABUNG NAMA
-    # =========================
-    df["nama_rekening"] = df.get("nama_rekening_siap").combine_first(
-        df.get("nama_rekening_sipd")
-    )
-    
-    # =========================
-    # HANDLE NULL
-    # =========================
-    df["siap"] = df["siap"].fillna(0)
-    df["sipd"] = df["sipd"].fillna(0)
-    
-    # =========================
-    # HITUNG SELISIH
-    # =========================
-    df["selisih"] = df["siap"] - df["sipd"]
-    
-    # =========================
-    # FINAL KOLOM
-    # =========================
-    df = df[[
-        "kode_rekening",
-        "nama_rekening",
-        "siap",
-        "sipd",
-        "selisih"
-    ]]
-    
-    st.session_state.df_merge = df.copy()
-    
-    # =========================
-    # FORMAT
-    # =========================
-    def fmt(x):
-        return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    
-    df_display = df.copy()
-    df_display["siap"] = df_display["siap"].apply(fmt)
-    df_display["sipd"] = df_display["sipd"].apply(fmt)
-    df_display["selisih"] = df_display["selisih"].apply(fmt)
+                         
+# =========================
+# TOMBOL HITUNG SELISIH
+# =========================
+if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
+    if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
+        st.session_state.hitung_selisih = True
+        st.session_state.boleh_simpan = True
+        st.session_state.sudah_simpan_jurnal = False
+        st.rerun()
+
+# =========================
+# STOP JIKA BELUM DIKLIK
+# =========================
+if not st.session_state.get("hitung_selisih"):
+    st.stop()
+
+# =========================
+# AMBIL DATA (WAJIB DI LUAR!)
+# =========================
+df1 = pd.DataFrame(get_siap(st.session_state.dinas))
+df2 = pd.DataFrame(get_sipd(st.session_state.dinas))
+
+# =========================
+# HANDLE SIAP
+# =========================
+if df1.empty:
+    df1 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_siap", "siap"])
+else:
+    df1 = df1.rename(columns={
+        "saldo_akhir": "siap",
+        "nama_rekening": "nama_rekening_siap"
+    })
+
+# =========================
+# HANDLE SIPD
+# =========================
+if df2.empty:
+    df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_sipd", "sipd"])
+else:
+    df2 = df2.rename(columns={
+        "saldo_akhir": "sipd",
+        "nama_rekening": "nama_rekening_sipd"
+    })
+
+# =========================
+# PASTIKAN NUMERIC
+# =========================
+df1["siap"] = pd.to_numeric(df1.get("siap", 0), errors="coerce").fillna(0)
+df2["sipd"] = pd.to_numeric(df2.get("sipd", 0), errors="coerce").fillna(0)
+
+# =========================
+# MERGE
+# =========================
+df = pd.merge(df1, df2, on="kode_rekening", how="outer")
+
+# =========================
+# GABUNG NAMA
+# =========================
+df["nama_rekening"] = df.get("nama_rekening_siap").combine_first(
+    df.get("nama_rekening_sipd")
+)
+
+# =========================
+# HANDLE NULL
+# =========================
+df["siap"] = df["siap"].fillna(0)
+df["sipd"] = df["sipd"].fillna(0)
+
+# =========================
+# HITUNG SELISIH
+# =========================
+df["selisih"] = df["siap"] - df["sipd"]
+
+# =========================
+# FINAL KOLOM
+# =========================
+df = df[[
+    "kode_rekening",
+    "nama_rekening",
+    "siap",
+    "sipd",
+    "selisih"
+]]
+
+st.session_state.df_merge = df.copy()
+
+# =========================
+# FORMAT
+# =========================
+def fmt(x):
+    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+df_display = df.copy()
+df_display["siap"] = df_display["siap"].apply(fmt)
+df_display["sipd"] = df_display["sipd"].apply(fmt)
+df_display["selisih"] = df_display["selisih"].apply(fmt)
+
+# =========================
+# TAMPILKAN
+# =========================
+st.subheader("📊 Perbandingan SIAP vs SIPD")
+st.dataframe(df_display, use_container_width=True)
+
+# =========================
+# TOTAL
+# =========================
+total_selisih = df["selisih"].sum()
+
+st.markdown(f"""
+<div style="
+    margin-top:10px;
+    padding:10px;
+    border-radius:10px;
+    background-color:#f0f2f6;
+    text-align:right;
+    font-size:20px;
+    font-weight:bold;
+">
+    Total Selisih : Rp {format_rupiah(total_selisih)}
+</div>
+""", unsafe_allow_html=True)
 
     # =========================
-    # TAMPILKAN
+    # SIMPAN JURNAL
     # =========================
-    st.subheader("📊 Perbandingan SIAP vs SIPD")
-    st.dataframe(df_display, use_container_width=True)
-    
-    # =========================
-    # TOTAL
-    # =========================
-    total_selisih = df["selisih"].sum()
-    
-    st.markdown(f"""
-    <div style="
-        margin-top:10px;
-        padding:10px;
-        border-radius:10px;
-        background-color:#f0f2f6;
-        text-align:right;
-        font-size:20px;
-        font-weight:bold;
-    ">
-        Total Selisih : Rp {format_rupiah(total_selisih)}
-    </div>
-    """, unsafe_allow_html=True)
-    
-        # =========================
-        # SIMPAN JURNAL
-        # =========================
-    if st.session_state.boleh_simpan:
-        if st.button("💾 Simpan Jurnal"):
-    
-                supabase.table("hasil_perbandingan") \
-                    .delete() \
-                    .eq("dinas", st.session_state.dinas) \
-                    .execute()
-        
-                insert_data = []
-        
-                df_filtered = df[df["selisih"] != 0]
-    
-                insert_data = df_filtered.apply(lambda r: {
-                    "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
-                    "tanggal_bukti": "2025-12-31",
-                    "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
-                    "kode_bas": r["kode_rekening"],
-                    "uraian": r["nama_rekening"],
-                    "debit": r["selisih"] if r["selisih"] > 0 else 0,
-                    "kredit": abs(r["selisih"]) if r["selisih"] < 0 else 0,
-                    "keterangan_rinci": "-",
-                    "dinas": st.session_state.dinas,
-                    "is_active": True
-                }, axis=1).tolist()
-        
-                if insert_data:
-                    supabase.table("hasil_perbandingan").insert(insert_data).execute()
-        
-                st.success("✅ Jurnal berhasil disimpan")
-                st.session_state.sudah_simpan_jurnal = True
-        
-            # =========================
-            # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
-            # =========================
-        res = supabase.table("hasil_perbandingan") \
-                .select("""
-                    nomor_bukti,
-                    tanggal_bukti,
-                    keterangan,
-                    kode_bas,
-                    uraian,
-                    debit,
-                    kredit,
-                    keterangan_rinci
-                """) \
+if st.session_state.boleh_simpan:
+    if st.button("💾 Simpan Jurnal"):
+
+            supabase.table("hasil_perbandingan") \
+                .delete() \
                 .eq("dinas", st.session_state.dinas) \
-                .order("kode_bas") \
                 .execute()
-        
-        if st.session_state.sudah_simpan_jurnal and res.data:
-        
-                df_export = pd.DataFrame(res.data)
-        
-                df_export.columns = [
-                    "Nomor Bukti",
-                    "Tanggal Bukti",
-                    "Keterangan",
-                    "Kode BAS",
-                    "Uraian",
-                    "Debit",
-                    "Kredit",
-                    "Keterangan Rinci"
-                ]
-        
-                # kosongkan kolom A-C baris ke-2 dst
-                df_export_display = df_export.copy()
-                for col in ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]:
-                    df_export_display.loc[1:, col] = ""
-        
-                output = BytesIO()
-        
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df_export_display.to_excel(
-                        writer,
-                        index=False,
-                        sheet_name='jurnal'
-                    )
-        
-                    ws = writer.sheets['jurnal']
-        
-                    # alignment
-                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
-                        for cell in row:
-                            cell.alignment = Alignment(vertical="top")
-        
-                    # width
-                    widths = {
-                        "A": 45, "B": 18, "C": 60, "D": 18,
-                        "E": 45, "F": 18, "G": 18, "H": 25
-                    }
-                    for col, w in widths.items():
-                        ws.column_dimensions[col].width = w
-        
-                    # ✅ FORMAT ANGKA 2 DESIMAL
-                    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
-                        for cell in row:
-                            cell.number_format = '0.00'
-        
-                output.seek(0)
-        
-                st.download_button(
-                    label="📥 Download Excel Jurnal",
-                    data=output,
-                    file_name=f"Jurnal_{st.session_state.dinas}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    
+            insert_data = []
+    
+            df_filtered = df[df["selisih"] != 0]
+
+            insert_data = df_filtered.apply(lambda r: {
+                "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
+                "tanggal_bukti": "2025-12-31",
+                "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
+                "kode_bas": r["kode_rekening"],
+                "uraian": r["nama_rekening"],
+                "debit": r["selisih"] if r["selisih"] > 0 else 0,
+                "kredit": abs(r["selisih"]) if r["selisih"] < 0 else 0,
+                "keterangan_rinci": "-",
+                "dinas": st.session_state.dinas,
+                "is_active": True
+            }, axis=1).tolist()
+    
+            if insert_data:
+                supabase.table("hasil_perbandingan").insert(insert_data).execute()
+    
+            st.success("✅ Jurnal berhasil disimpan")
+            st.session_state.sudah_simpan_jurnal = True
+    
+        # =========================
+        # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
+        # =========================
+    res = supabase.table("hasil_perbandingan") \
+            .select("""
+                nomor_bukti,
+                tanggal_bukti,
+                keterangan,
+                kode_bas,
+                uraian,
+                debit,
+                kredit,
+                keterangan_rinci
+            """) \
+            .eq("dinas", st.session_state.dinas) \
+            .order("kode_bas") \
+            .execute()
+    
+    if st.session_state.sudah_simpan_jurnal and res.data:
+    
+            df_export = pd.DataFrame(res.data)
+    
+            df_export.columns = [
+                "Nomor Bukti",
+                "Tanggal Bukti",
+                "Keterangan",
+                "Kode BAS",
+                "Uraian",
+                "Debit",
+                "Kredit",
+                "Keterangan Rinci"
+            ]
+    
+            # kosongkan kolom A-C baris ke-2 dst
+            df_export_display = df_export.copy()
+            for col in ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]:
+                df_export_display.loc[1:, col] = ""
+    
+            output = BytesIO()
+    
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_export_display.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name='jurnal'
                 )
+    
+                ws = writer.sheets['jurnal']
+    
+                # alignment
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
+                    for cell in row:
+                        cell.alignment = Alignment(vertical="top")
+    
+                # width
+                widths = {
+                    "A": 45, "B": 18, "C": 60, "D": 18,
+                    "E": 45, "F": 18, "G": 18, "H": 25
+                }
+                for col, w in widths.items():
+                    ws.column_dimensions[col].width = w
+    
+                # ✅ FORMAT ANGKA 2 DESIMAL
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
+                    for cell in row:
+                        cell.number_format = '0.00'
+    
+            output.seek(0)
+    
+            st.download_button(
+                label="📥 Download Excel Jurnal",
+                data=output,
+                file_name=f"Jurnal_{st.session_state.dinas}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 
 
