@@ -317,10 +317,13 @@ if st.session_state.load_dinas:
                     st.rerun()
 
 # =========================
-# PERBANDINGAN + EXPORT (FIX SESUAI RULE)
+# PERBANDINGAN + EXPORT (FINAL)
 # =========================
 if st.session_state.get("hitung_selisih"):
 
+    # =========================
+    # AMBIL DATA
+    # =========================
     res1 = supabase.table("neraca_siap") \
         .select("kode_rekening,nama_rekening,saldo_akhir") \
         .eq("dinas", st.session_state.dinas).execute()
@@ -335,8 +338,15 @@ if st.session_state.get("hitung_selisih"):
     # =========================
     # RENAME
     # =========================
-    df1 = df1.rename(columns={"saldo_akhir":"siap"})
-    df2 = df2.rename(columns={"saldo_akhir":"sipd"})
+    df1 = df1.rename(columns={
+        "saldo_akhir": "siap",
+        "nama_rekening": "nama_rekening_siap"
+    })
+
+    df2 = df2.rename(columns={
+        "saldo_akhir": "sipd",
+        "nama_rekening": "nama_rekening_sipd"
+    })
 
     # =========================
     # NUMERIC
@@ -345,15 +355,26 @@ if st.session_state.get("hitung_selisih"):
     df2["sipd"] = pd.to_numeric(df2["sipd"], errors="coerce").fillna(0)
 
     # =========================
-    # MERGE (LEFT → IKUT SIAP)
+    # MERGE (GABUNGAN)
     # =========================
     df = pd.merge(
         df1,
-        df2[["kode_rekening","sipd"]],
+        df2,
         on="kode_rekening",
-        how="left"
+        how="outer"
     )
 
+    # =========================
+    # GABUNG NAMA
+    # =========================
+    df["nama_rekening"] = df["nama_rekening_siap"].combine_first(
+        df["nama_rekening_sipd"]
+    )
+
+    # =========================
+    # HANDLE NULL
+    # =========================
+    df["siap"] = df["siap"].fillna(0)
     df["sipd"] = df["sipd"].fillna(0)
 
     # =========================
@@ -372,6 +393,7 @@ if st.session_state.get("hitung_selisih"):
         "selisih"
     ]]
 
+    # simpan session
     st.session_state.df_merge = df.copy()
 
     # =========================
@@ -385,6 +407,9 @@ if st.session_state.get("hitung_selisih"):
     df_display["sipd"] = df_display["sipd"].apply(fmt)
     df_display["selisih"] = df_display["selisih"].apply(fmt)
 
+    # =========================
+    # TAMPILKAN
+    # =========================
     st.subheader("📊 Perbandingan SIAP vs SIPD")
     st.dataframe(df_display, use_container_width=True)
 
@@ -420,13 +445,14 @@ if st.session_state.get("hitung_selisih"):
         insert_data = []
 
         for _, r in df.iterrows():
+
             if r["selisih"] == 0:
                 continue
 
             insert_data.append({
-                "nomor_bukti": "JP",
+                "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
                 "tanggal_bukti": "2025-12-31",
-                "keterangan": "Jurnal",
+                "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
                 "kode_bas": r["kode_rekening"],
                 "uraian": r["nama_rekening"],
                 "debit": r["selisih"] if r["selisih"] > 0 else 0,
@@ -459,7 +485,7 @@ if st.session_state.get("hitung_selisih"):
         output.seek(0)
 
         st.download_button(
-            "📥 Download Excel",
+            "📥 Download Excel Penyesuaian",
             data=output,
-            file_name=f"Jurnal_{st.session_state.dinas}.xlsx"
+            file_name=f"Jurnal_Penyesuaian_{st.session_state.dinas}.xlsx"
         )
