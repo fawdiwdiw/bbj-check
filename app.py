@@ -325,9 +325,12 @@ if st.session_state.load_dinas:
         else:
 
             file = st.file_uploader("Upload SIPD", type=["xlsx"], key=f"sipd_{st.session_state.trigger_revisi_sipd}")
-            if file:
+
+            # ✅ SIMPAN FILE KE SESSION
+            if file is not None:
                 st.session_state.file_sipd = file
             
+            # ✅ AMBIL DARI SESSION
             if "file_sipd" in st.session_state:
                 file = st.session_state.file_sipd
 
@@ -358,7 +361,7 @@ if st.session_state.load_dinas:
 
                 total = data_8102["saldo"].sum()
 
-                if total != total_siap:
+                if abs(total - total_siap) > 1:
                     selisih = total - total_siap
                 
                     st.error(f"""
@@ -381,7 +384,7 @@ if st.session_state.load_dinas:
                 </div>
                 """, unsafe_allow_html=True)
 
-                if st.button("💾 Simpan SIPD"):
+                if st.button("💾 Simpan SIPD", key="btn_simpan_sipd"):
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
                     data_insert = [
                                 {
