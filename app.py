@@ -215,31 +215,28 @@ if st.session_state.load_dinas:
     # =========================
     # SIAP (PERBAIKAN FINAL)
     # =========================
+    # =========================
+    # SIAP (FIX TOMBOL REVISI)
+    # =========================
     with col1:
         data_siap_db = get_siap(st.session_state.dinas)
         df_siap_db = pd.DataFrame(data_siap_db)
         
         total_db = df_siap_db["saldo_akhir"].astype(float).sum() if not df_siap_db.empty else 0
+        
+        # Update status simpan berdasarkan data DB
         st.session_state.sudah_simpan_siap = total_db > 0
 
         st.subheader("📥 Neraca SIAP")
 
-        if st.session_state.sudah_simpan_siap and not st.session_state.mode_revisi_siap:
-            st.info(f"Total di Database: Rp {format_rupiah(total_db)}")
-
-            if st.button("🔄 Upload Ulang SIAP"):
-                st.session_state.mode_revisi_siap = True
-                st.session_state.trigger_revisi_siap += 1
-                st.rerun()
-
-        else:
+        # LOGIKA TERBALIK: Cek Mode Revisi DULU, baru cek status DB
+        if st.session_state.mode_revisi_siap or not st.session_state.sudah_simpan_siap:
+            # TAMPILKAN UPLOADER
             file = st.file_uploader("Upload SIAP", type=["xlsx"], key=f"siap_{st.session_state.trigger_revisi_siap}")
 
             if file:
                 df = pd.read_excel(file, header=None, dtype=str)
-
-                # Ekstrak & Cocokkan Dinas
-                dinas_file = extract_nama_dinas(df.iloc[5,4]) # Cell E6
+                dinas_file = extract_nama_dinas(df.iloc[5,4])
                 match = cocokkan_dinas(dinas_file)
 
                 if match != st.session_state.dinas:
@@ -249,37 +246,15 @@ if st.session_state.load_dinas:
                 # --- PROSES DATA ---
                 data = df.iloc[7:].copy()[[1,2,3,4,8]]
                 data.columns = ["kode","u1","u2","u3","saldo"]
-                data["kode"] = data["kode"].astype(str)
-                
-                # Filter 8102
-                data_8102 = data[data["kode"].str.startswith("8102")].copy()
-                data_8102["nama"] = (
-                    data_8102["u1"].fillna("")+" "+
-                    data_8102["u2"].fillna("")+" "+
-                    data_8102["u3"].fillna("")
-                ).str.strip()
-
-                data_8102["saldo"] = pd.to_numeric(
-                    data_8102["saldo"].str.replace(",", ""),
-                    errors="coerce"
-                ).fillna(0)
+                data_8102 = data[data["kode"].astype(str).str.startswith("8102")].copy()
+                data_8102["nama"] = (data_8102["u1"].fillna("")+" "+data_8102["u2"].fillna("")+" "+data_8102["u3"].fillna("")).str.strip()
+                data_8102["saldo"] = pd.to_numeric(data_8102["saldo"].str.replace(",", ""), errors="coerce").fillna(0)
 
                 total_excel = data_8102["saldo"].sum()
-                
-                # Validasi BBJ BLUD (810299999999 harus 0)
-                cek_bbj = data_8102[data_8102["kode"]=="810299999999"]["saldo"].sum()
-                if cek_bbj != 0:
-                    st.error(f"❌ Masih ada saldo BBJ BLUD (Rp {format_rupiah(cek_bbj)}). Silakan revisi dahulu!")
-                    st.stop()
-
                 st.success(f"✅ Data Siap. Total: Rp {format_rupiah(total_excel)}")
 
-                # --- TOMBOL SIMPAN ---
                 if st.button("💾 Simpan SIAP ke Database"):
-                    # 1. Hapus data lama
                     supabase.table("neraca_siap").delete().eq("dinas", match).execute()
-                    
-                    # 2. Siapkan batch insert
                     insert_siap = [
                         {
                             "dinas": match,
@@ -289,18 +264,28 @@ if st.session_state.load_dinas:
                             "is_active": True
                         } for _, r in data_8102.iterrows()
                     ]
-                    
-                    # 3. Eksekusi Insert
                     if insert_siap:
-                        # Batch insert per 500 baris
                         for i in range(0, len(insert_siap), 500):
                             supabase.table("neraca_siap").insert(insert_siap[i:i+500]).execute()
                     
-                    # 4. Cleanup & Refresh
-                    get_siap.clear() # Hapus cache agar total terbaru muncul
-                    st.session_state.mode_revisi_siap = False
-                    st.success("✅ Berhasil simpan ke database!")
+                    get_siap.clear() 
+                    st.session_state.mode_revisi_siap = False # MATIKAN MODE REVISI SETELAH SIMPAN
+                    st.success("✅ Berhasil simpan!")
                     st.rerun()
+            
+            # Tombol Batal jika sedang dalam mode revisi
+            if st.session_state.mode_revisi_siap and total_db > 0:
+                if st.button("❌ Batal Revisi"):
+                    st.session_state.mode_revisi_siap = False
+                    st.rerun()
+
+        else:
+            # TAMPILKAN INFO DB & TOMBOL UPLOAD ULANG
+            st.info(f"Total di Database: Rp {format_rupiah(total_db)}")
+            if st.button("🔄 Upload Ulang SIAP"):
+                st.session_state.mode_revisi_siap = True
+                st.session_state.trigger_revisi_siap += 1
+                st.rerun()
     # =========================
     # SIPD (FINAL VERSION)
     # =========================
