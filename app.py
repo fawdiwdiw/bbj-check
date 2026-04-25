@@ -492,7 +492,7 @@ if st.session_state.get("hitung_selisih"):
                 st.warning("Tidak ada selisih yang perlu dibuatkan jurnal.")
 
     # ==================================
-    # 4. EXPORT EXCEL (OTOMATIS MUNCUL)
+    # 4. EXPORT EXCEL (FORMAT ANGKA FIX)
     # ==================================
     if st.session_state.sudah_simpan_jurnal:
         res = supabase.table("hasil_perbandingan") \
@@ -503,42 +503,47 @@ if st.session_state.get("hitung_selisih"):
         if res.data:
             df_export = pd.DataFrame(res.data)
             
-            # 1. Rapikan Nama Kolom
+            # Rapikan Nama Kolom
             df_export.columns = [
                 "Nomor Bukti", "Tanggal Bukti", "Keterangan", 
                 "Kode BAS", "Uraian", "Debit", "Kredit", "Keterangan Rinci"
             ]
             
-            # 2. Kosongkan baris duplikat untuk Nomor Bukti s/d Keterangan (Agar rapi di Excel)
+            # Kosongkan baris duplikat untuk kolom A, B, C (biar cantik)
             df_export_final = df_export.copy()
             if len(df_export_final) > 1:
                 df_export_final.loc[1:, ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]] = ""
 
-            # 3. PROSES PEMBUATAN EXCEL (Ke Memory/BytesIO)
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_export_final.to_excel(writer, index=False, sheet_name='Jurnal')
-                
-                # STYLING (Opsional tapi biar bagus)
                 ws = writer.sheets['Jurnal']
                 
-                # Set Width
-                widths = {'A': 40, 'B': 15, 'C': 50, 'D': 15, 'E': 40, 'F': 15, 'G': 15, 'H': 20}
+                # --- PENGATURAN FORMAT EXCEL ---
+                
+                # 1. Lebar Kolom
+                widths = {'A': 40, 'B': 15, 'C': 50, 'D': 18, 'E': 45, 'F': 20, 'G': 20, 'H': 25}
                 for col, width in widths.items():
                     ws.column_dimensions[col].width = width
                 
-                # Format Angka & Alignment
-                for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-                    # Kolom F (Debit) dan G (Kredit)
-                    row[5].number_format = '#,##0.00'
-                    row[6].number_format = '#,##0.00'
-                    # Alignment Top untuk kolom keterangan
-                    for cell in row[:3]:
+                # 2. Format Angka (Kolom F & G) dan Alignment
+                for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), start=2):
+                    # Kolom Debit (Cell F)
+                    cell_debit = ws.cell(row=row_idx, column=6)
+                    cell_debit.value = float(cell_debit.value) if cell_debit.value else 0
+                    cell_debit.number_format = '#,##0.00' # <--- Ini kuncinya!
+                    
+                    # Kolom Kredit (Cell G)
+                    cell_kredit = ws.cell(row=row_idx, column=7)
+                    cell_kredit.value = float(cell_kredit.value) if cell_kredit.value else 0
+                    cell_kredit.number_format = '#,##0.00' # <--- Ini kuncinya!
+
+                    # Alignment biar rapi
+                    for cell in row:
                         cell.alignment = Alignment(vertical="top")
 
             processed_data = output.getvalue()
 
-            # 4. Tampilkan Tombol Download
             st.download_button(
                 label="📥 Download Excel Jurnal",
                 data=processed_data,
@@ -546,7 +551,6 @@ if st.session_state.get("hitung_selisih"):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-
 
 
 
