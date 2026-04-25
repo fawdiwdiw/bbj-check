@@ -262,6 +262,15 @@ if st.session_state.load_dinas:
                 total_excel = data_8102["saldo"].sum()
                 st.success(f"✅ Data Siap. Total: Rp {format_rupiah(total_excel)}")
 
+                # ⬇️ TARUH DI SINI
+                nilai_bbj = data_8102[data_8102["kode"]=="810299999999"]["saldo"].sum()
+                
+                if nilai_bbj != 0:
+                    st.error("❌ Masih ada BBJ BLUD (810299999999) senilai Rp {format_rupiah(nilai_bbj)}, Silahkan revisi dahulu!")
+                    st.stop()
+                
+                if st.button("💾 Simpan SIAP ke Database"):
+
                 if st.button("💾 Simpan SIAP ke Database"):
                     supabase.table("neraca_siap").delete().eq("dinas", match).execute()
                     insert_siap = [
