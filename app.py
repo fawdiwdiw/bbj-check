@@ -468,24 +468,97 @@ if st.session_state.get("hitung_selisih"):
         st.success("✅ Jurnal berhasil disimpan")
 
     # =========================
-    # EXPORT EXCEL
+# EXPORT EXCEL (FINAL FIX SESUAI RULE)
+# =========================
+res = supabase.table("hasil_perbandingan") \
+    .select("""
+        nomor_bukti,
+        tanggal_bukti,
+        keterangan,
+        kode_bas,
+        uraian,
+        debit,
+        kredit,
+        keterangan_rinci
+    """) \
+    .eq("dinas", st.session_state.dinas) \
+    .order("kode_bas") \
+    .execute()
+
+if res.data:
+
+    df_export = pd.DataFrame(res.data)
+
     # =========================
-    res = supabase.table("hasil_perbandingan") \
-        .select("*") \
-        .eq("dinas", st.session_state.dinas).execute()
+    # RENAME KOLOM (BIAR SESUAI EXCEL)
+    # =========================
+    df_export.columns = [
+        "Nomor Bukti",
+        "Tanggal Bukti",
+        "Keterangan",
+        "Kode BAS",
+        "Uraian",
+        "Debit",
+        "Kredit",
+        "Keterangan Rinci"
+    ]
 
-    if res.data:
+    # =========================
+    # KOSONGKAN KOLOM A-C (BARIS KE-2 DST)
+    # =========================
+    df_export_display = df_export.copy()
 
-        df_export = pd.DataFrame(res.data)
+    cols_hide = ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]
 
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, index=False, sheet_name='jurnal')
+    for col in cols_hide:
+        df_export_display.loc[1:, col] = ""
 
-        output.seek(0)
+    # =========================
+    # BUAT EXCEL
+    # =========================
+    output = BytesIO()
 
-        st.download_button(
-            "📥 Download Excel Penyesuaian",
-            data=output,
-            file_name=f"Jurnal_Penyesuaian_{st.session_state.dinas}.xlsx"
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_export_display.to_excel(
+            writer,
+            index=False,
+            sheet_name='jurnal'
         )
+
+        ws = writer.sheets['jurnal']
+
+        # =========================
+        # ALIGNMENT VERTICAL ATAS
+        # =========================
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
+            for cell in row:
+                cell.alignment = Alignment(vertical="top")
+
+        # =========================
+        # AUTO WIDTH (RAPI)
+        # =========================
+        column_widths = {
+            "A": 45,
+            "B": 18,
+            "C": 60,
+            "D": 18,
+            "E": 45,
+            "F": 18,
+            "G": 18,
+            "H": 25
+        }
+
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+
+    output.seek(0)
+
+    # =========================
+    # DOWNLOAD BUTTON
+    # =========================
+    st.download_button(
+        label="📥 Download Excel Penyesuaian",
+        data=output,
+        file_name=f"Jurnal_Penyesuaian_{st.session_state.dinas}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
