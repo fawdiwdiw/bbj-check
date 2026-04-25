@@ -338,7 +338,14 @@ if st.session_state.load_dinas:
                 # Validasi Balance
                 selisih_cek = abs(total_excel - total_siap)
                 if selisih_cek > 1:
-                    st.error(f"❌ Tidak balance dengan SIAP! Selisih: Rp {format_rupiah(total_excel - total_siap)}")
+                    st.error(f"""
+                    ❌ Tidak balance dengan SIAP!
+                    
+                    **Total SIAP** : Rp {format_rupiah(total_siap)}
+                    **Total SIPD** : Rp {format_rupiah(total_excel)}
+                    
+                    **Selisih** : Rp {format_rupiah(total_excel - total_siap)}
+                    """)
                     st.stop()
                 
                 st.success(f"✅ Balance! Total SIPD: Rp {format_rupiah(total_excel)}")
