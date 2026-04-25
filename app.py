@@ -274,7 +274,7 @@ if st.session_state.load_dinas:
 
                 if st.button("💾 Simpan SIAP"):
                     supabase.table("neraca_siap").delete().eq("dinas", match).execute()
-
+                
                     supabase.table("neraca_siap").insert([
                         {
                             "dinas": match,
@@ -284,7 +284,10 @@ if st.session_state.load_dinas:
                             "is_active": True
                         } for _,r in data_8102.iterrows()
                     ]).execute()
-
+                
+                    # 🔥 WAJIB: clear cache
+                    get_siap.clear()
+                
                     st.rerun()
 
     # =========================
@@ -378,6 +381,8 @@ if st.session_state.load_dinas:
                     # 3. Insert Batch (per 500 baris)
                     for i in range(0, len(data_insert), 500):
                         supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
+
+                    get_sipd.clear()
                     
                     st.session_state.mode_revisi_sipd = False
                     st.success("✅ Data berhasil disimpan!")
