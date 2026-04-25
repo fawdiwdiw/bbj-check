@@ -396,7 +396,8 @@ if st.session_state.load_dinas:
 # ==================================
 # 1. TOMBOL PEMICU (HITUNG SELISIH)
 # ==================================
-if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
+# Tambahkan syarat: and not st.session_state.hitung_selisih
+if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd and not st.session_state.get("hitung_selisih"):
     st.markdown("---")
     if st.button("🔍 Hitung Selisih SIAP vs SIPD", use_container_width=True):
         st.session_state.hitung_selisih = True
