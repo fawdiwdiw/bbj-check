@@ -289,6 +289,9 @@ if st.session_state.load_dinas:
     # =========================
     # SIPD (FINAL VERSION)
     # =========================
+    # =========================
+    # SIPD (WITH BATAL REVISI)
+    # =========================
     with col2:
         # 1. Ambil data yang sudah ada di database
         data_sipd = get_sipd(st.session_state.dinas)
@@ -303,32 +306,20 @@ if st.session_state.load_dinas:
 
         st.subheader("📥 Neraca SIPD")
 
-        # Tampilan jika sudah ada data di database
-        if st.session_state.sudah_simpan_sipd and not st.session_state.mode_revisi_sipd:
-            st.info(f"Total di Database: Rp {format_rupiah(total_sipd_db)}")
-
-            if st.button("🔄 Upload Ulang SIPD"):
-                st.session_state.mode_revisi_sipd = True
-                st.session_state.trigger_revisi_sipd += 1
-                st.rerun()
-            
-
-        # Tampilan Form Upload
-        else:
+        # Tampilan Form Upload (Jika Belum Ada Data ATAU Sedang Mode Revisi)
+        if st.session_state.mode_revisi_sipd or not st.session_state.sudah_simpan_sipd:
             file = st.file_uploader("Upload File Excel SIPD", type=["xlsx"], key=f"sipd_{st.session_state.trigger_revisi_sipd}")
 
             if file:
                 df = pd.read_excel(file, header=None, dtype=str)
-                
-                # Identifikasi Dinas dari cell C3 (Row 2, Col 2)
                 dinas_file = extract_nama_dinas(df.iloc[2,2])
                 match = cocokkan_dinas(dinas_file)
 
                 if match != st.session_state.dinas:
-                    st.error(f"❌ File milik: {dinas_file}. Harus sesuai dengan pilihan di atas!")
+                    st.error(f"❌ File milik: {dinas_file}. Harus sesuai pilihan!")
                     st.stop()
 
-                # Proses data (Row 8 ke bawah, Col A, B, I, J)
+                # Proses data
                 data = df.iloc[7:].copy()[[0,1,8,9]]
                 data.columns = ["kode","nama","debit","kredit"]
                 data["kode"] = data["kode"].str.replace(".","", regex=False)
@@ -341,29 +332,19 @@ if st.session_state.load_dinas:
                 data["kredit"] = data["kredit"].apply(clean_money).fillna(0)
                 data["saldo"] = data["debit"] - data["kredit"]
                 
-                # Ambil hanya kode BBJ (8102)
                 df_final_sipd = data[data["kode"].str.startswith("8102")].copy()
                 total_excel = df_final_sipd["saldo"].sum()
 
-                # Validasi Balance dengan SIAP (toleransi 1 rupiah)
+                # Validasi Balance
                 selisih_cek = abs(total_excel - total_siap)
-                
                 if selisih_cek > 1:
-                    st.error(f"""
-                    ❌ Tidak balance dengan SIAP!
-                    SIAP : Rp {format_rupiah(total_siap)}
-                    SIPD : Rp {format_rupiah(total_excel)}
-                    Selisih: Rp {format_rupiah(total_excel - total_siap)}
-                    """)
+                    st.error(f"❌ Tidak balance dengan SIAP! Selisih: Rp {format_rupiah(total_excel - total_siap)}")
                     st.stop()
                 
                 st.success(f"✅ Balance! Total SIPD: Rp {format_rupiah(total_excel)}")
 
                 if st.button("💾 Simpan SIPD ke Database"):
-                    # 1. Hapus data lama dinas tersebut
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
-                    
-                    # 2. Susun data insert
                     data_insert = [
                         {
                             "dinas": match,
@@ -373,16 +354,28 @@ if st.session_state.load_dinas:
                             "is_active": True
                         } for _, r in df_final_sipd.iterrows()
                     ]
-                    
-                    # 3. Insert Batch (per 500 baris)
                     for i in range(0, len(data_insert), 500):
                         supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
 
                     get_sipd.clear()
-                    
                     st.session_state.mode_revisi_sipd = False
                     st.success("✅ Data berhasil disimpan!")
-                    st.rerun() 
+                    st.rerun()
+
+            # --- TOMBOL BATAL REVISI (Hanya muncul jika di DB sudah ada data) ---
+            if st.session_state.mode_revisi_sipd and total_sipd_db > 0:
+                if st.button("❌ Batal Revisi", key="btn_batal_sipd"):
+                    st.session_state.mode_revisi_sipd = False
+                    st.rerun()
+
+        # Tampilan jika sudah ada data di database
+        else:
+            st.info(f"Total di Database: Rp {format_rupiah(total_sipd_db)}")
+
+            if st.button("🔄 Upload Ulang SIPD"):
+                st.session_state.mode_revisi_sipd = True
+                st.session_state.trigger_revisi_sipd += 1
+                st.rerun()
 
                          
 # =========================
