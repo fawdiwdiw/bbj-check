@@ -343,247 +343,247 @@ if st.session_state.load_dinas:
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-# =========================
-# KOLOM 2: NERACA SIPD (FINAL FIX)
-# =========================
-with col2:
-
-    if "trigger_revisi_sipd" not in st.session_state:
-        st.session_state.trigger_revisi_sipd = 0
-
-    if "mode_revisi_sipd" not in st.session_state:
-        st.session_state.mode_revisi_sipd = False
-
-    # =========================
-    # CEK DATA DI DB
-    # =========================
-    res = supabase.table("neraca_sipd") \
-        .select("saldo_akhir") \
-        .eq("dinas", st.session_state.dinas) \
-        .execute()
-
-    total_db = sum(float(r["saldo_akhir"]) for r in res.data) if res.data else 0
-    sudah_simpan_sipd = total_db > 0
-
-    # =========================
-    # AMBIL TOTAL SIAP
-    # =========================
-    res_siap = supabase.table("neraca_siap") \
-        .select("saldo_akhir") \
-        .eq("dinas", st.session_state.dinas) \
-        .execute()
-
-    total_siap_db = sum(float(r["saldo_akhir"]) for r in res_siap.data) if res_siap.data else 0
-
-    # =========================
-    # HEADER
-    # =========================
-    if sudah_simpan_sipd:
-        st.subheader("📥 Upload Neraca SIPD ✅")
-    else:
-        st.subheader("📥 Upload Neraca SIPD")
-
-    # =========================
-    # MODE: SUDAH TERSIMPAN
-    # =========================
-    if sudah_simpan_sipd and not st.session_state.mode_revisi_sipd:
-
-        st.markdown(f"""
-        <div style="padding:12px; border-radius:12px; background-color:#e6f4ea;">
-            <b>✅ Neraca SIPD pada {st.session_state.dinas}</b><br>
-            <span style="font-size:26px; font-weight:bold;">
-                Rp {format_rupiah(total_db)}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("🔄 Upload Ulang SIPD"):
-            st.session_state.mode_revisi_sipd = True
-            st.session_state.trigger_revisi_sipd += 1
-            st.rerun()
-
-        # ✅ POSISI BENAR (SAMA DENGAN LOKAL)
-        if st.session_state.sudah_simpan_siap:
-            if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
-                st.session_state.hitung_selisih = True
-
-    # =========================
-    # MODE: UPLOAD
-    # =========================
-    else:
-
-        file_sipd = st.file_uploader(
-            "Upload Excel SIPD",
-            type=["xlsx"],
-            key=f"sipd_{st.session_state.trigger_revisi_sipd}"
-        )
-
-        if file_sipd:
-            try:
-                df = pd.read_excel(file_sipd, header=None, dtype=str)
-
-                dinas_raw = df.iloc[2, 2]
-                dinas_clean = extract_nama_dinas(dinas_raw)
-                dinas_match = cocokkan_dinas(dinas_clean, list_dinas)
-
-                st.info(f"📄 Dinas di file: {dinas_clean}")
-
-                if dinas_match == st.session_state.dinas:
-
-                    data = df.iloc[7:].copy()
-                    data = data[[0,1,8,9]]
-                    data.columns = ["kode","nama","debit","kredit"]
-
-                    data["kode"] = (
-                        data["kode"]
-                        .astype(str)
-                        .str.replace(".", "", regex=False)
-                        .str.strip()
-                    )
-
-                    data_8102 = data[data["kode"].str.startswith("8102")].copy()
-
-                    def clean_angka(x):
-                        if pd.isna(x):
-                            return 0
-                        x = str(x)
-                        x = x.replace(".", "")
-                        x = x.replace(",", ".")
-                        return pd.to_numeric(x, errors="coerce")
-
-                    data_8102["debit"] = data_8102["debit"].apply(clean_angka).fillna(0)
-                    data_8102["kredit"] = data_8102["kredit"].apply(clean_angka).fillna(0)
-
-                    data_8102["saldo"] = data_8102["debit"] - data_8102["kredit"]
-
-                    total_saldo = data_8102["saldo"].sum()
-
-                    # ❗ VALIDASI HARUS EXACT (SAMAIN DENGAN LOKAL)
-                    if total_saldo != total_siap_db:
-
-                        selisih = total_saldo - total_siap_db
-
-                        st.error(f"""
-                        ❌ Total SIPD tidak sama dengan SIAP  
-                        SIAP : Rp {format_rupiah(total_siap_db)}  
-                        SIPD : Rp {format_rupiah(total_saldo)}  
-                        Selisih : Rp {format_rupiah(selisih)}
-                        """)
-                        st.stop()
-                    else:
-                        st.success("✅ Total SIPD sudah sama dengan SIAP")
-
-                    st.success("✅ Data siap disimpan")
-
-                    if st.button("💾 Simpan SIPD ke Database"):
-
-                        supabase.table("neraca_sipd") \
-                            .delete() \
-                            .eq("dinas", st.session_state.dinas) \
-                            .execute()
-
-                        to_db = []
-                        for _, r in data_8102.iterrows():
-                            to_db.append({
-                                "dinas": st.session_state.dinas,
-                                "kode_rekening": r["kode"],
-                                "nama_rekening": r["nama"],
-                                "saldo_akhir": float(r["saldo"]),
-                                "is_active": True
-                            })
-
-                        supabase.table("neraca_sipd").insert(to_db).execute()
-
-                        st.session_state.mode_revisi_sipd = False
-                        st.rerun()
-
-                else:
-                    st.warning("⚠️ Dinas tidak sesuai")
-
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-# =========================
-# PERBANDINGAN (FINAL)
-# =========================
-if (
-    st.session_state.get("hitung_selisih", False)
-    and st.session_state.sudah_simpan_siap
-):
-
-    res_siap = supabase.table("neraca_siap") \
-        .select("kode_rekening,nama_rekening,saldo_akhir") \
-        .eq("dinas", st.session_state.dinas).execute()
-
-    res_sipd = supabase.table("neraca_sipd") \
-        .select("kode_rekening,nama_rekening,saldo_akhir") \
-        .eq("dinas", st.session_state.dinas).execute()
-
-    df_siap = pd.DataFrame(res_siap.data)
-    df_sipd = pd.DataFrame(res_sipd.data)
-
-    df_siap = df_siap.rename(columns={"saldo_akhir": "siap"})
-    df_sipd = df_sipd.rename(columns={"saldo_akhir": "sipd"})
-
-    df_siap["siap"] = pd.to_numeric(df_siap["siap"], errors="coerce").fillna(0)
-    df_sipd["sipd"] = pd.to_numeric(df_sipd["sipd"], errors="coerce").fillna(0)
-
-    df_merge = pd.merge(
-        df_siap,
-        df_sipd,
-        on=["kode_rekening"],
-        how="outer",
-        suffixes=("_siap", "_sipd")
-    )
-
-    df_merge["nama_rekening"] = df_merge["nama_rekening_siap"].combine_first(
-        df_merge["nama_rekening_sipd"]
-    )
-
-    df_merge["siap"] = df_merge["siap"].fillna(0)
-    df_merge["sipd"] = df_merge["sipd"].fillna(0)
-
-    df_merge["selisih"] = df_merge["siap"] - df_merge["sipd"]
-
-    st.session_state.df_merge = df_merge
-
-    st.subheader("📊 Perbandingan SIAP vs SIPD")
-    st.dataframe(df_merge, use_container_width=True)
-
-    # =========================
-    # SIMPAN HASIL
-    # =========================
-    if st.button("💾 Simpan Hasil Perbandingan"):
-
-        supabase.table("hasil_perbandingan") \
-            .delete() \
-            .eq("dinas", st.session_state.dinas) \
-            .execute()
-
-        insert_data = []
-
-        for _, row in df_merge.iterrows():
-
-            if row["selisih"] == 0:
-                continue
-
-            debit = row["selisih"] if row["selisih"] > 0 else 0
-            kredit = abs(row["selisih"]) if row["selisih"] < 0 else 0
-
-            insert_data.append({
-                "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
-                "tanggal_bukti": "2025-12-31",
-                "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
-                "kode_bas": row["kode_rekening"],
-                "uraian": row["nama_rekening"],
-                "debit": debit,
-                "kredit": kredit,
-                "keterangan_rinci": "-",
-                "dinas": st.session_state.dinas,
-                "is_active": True
-            })
-
-        if insert_data:
-            supabase.table("hasil_perbandingan").insert(insert_data).execute()
-
-        st.success("✅ Hasil berhasil disimpan")
+        # =========================
+        # KOLOM 2: NERACA SIPD (FINAL FIX)
+        # =========================
+        with col2:
+        
+            if "trigger_revisi_sipd" not in st.session_state:
+                st.session_state.trigger_revisi_sipd = 0
+        
+            if "mode_revisi_sipd" not in st.session_state:
+                st.session_state.mode_revisi_sipd = False
+        
+            # =========================
+            # CEK DATA DI DB
+            # =========================
+            res = supabase.table("neraca_sipd") \
+                .select("saldo_akhir") \
+                .eq("dinas", st.session_state.dinas) \
+                .execute()
+        
+            total_db = sum(float(r["saldo_akhir"]) for r in res.data) if res.data else 0
+            sudah_simpan_sipd = total_db > 0
+        
+            # =========================
+            # AMBIL TOTAL SIAP
+            # =========================
+            res_siap = supabase.table("neraca_siap") \
+                .select("saldo_akhir") \
+                .eq("dinas", st.session_state.dinas) \
+                .execute()
+        
+            total_siap_db = sum(float(r["saldo_akhir"]) for r in res_siap.data) if res_siap.data else 0
+        
+            # =========================
+            # HEADER
+            # =========================
+            if sudah_simpan_sipd:
+                st.subheader("📥 Upload Neraca SIPD ✅")
+            else:
+                st.subheader("📥 Upload Neraca SIPD")
+        
+            # =========================
+            # MODE: SUDAH TERSIMPAN
+            # =========================
+            if sudah_simpan_sipd and not st.session_state.mode_revisi_sipd:
+        
+                st.markdown(f"""
+                <div style="padding:12px; border-radius:12px; background-color:#e6f4ea;">
+                    <b>✅ Neraca SIPD pada {st.session_state.dinas}</b><br>
+                    <span style="font-size:26px; font-weight:bold;">
+                        Rp {format_rupiah(total_db)}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+        
+                if st.button("🔄 Upload Ulang SIPD"):
+                    st.session_state.mode_revisi_sipd = True
+                    st.session_state.trigger_revisi_sipd += 1
+                    st.rerun()
+        
+                # ✅ POSISI BENAR (SAMA DENGAN LOKAL)
+                if st.session_state.sudah_simpan_siap:
+                    if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
+                        st.session_state.hitung_selisih = True
+        
+            # =========================
+            # MODE: UPLOAD
+            # =========================
+            else:
+        
+                file_sipd = st.file_uploader(
+                    "Upload Excel SIPD",
+                    type=["xlsx"],
+                    key=f"sipd_{st.session_state.trigger_revisi_sipd}"
+                )
+        
+                if file_sipd:
+                    try:
+                        df = pd.read_excel(file_sipd, header=None, dtype=str)
+        
+                        dinas_raw = df.iloc[2, 2]
+                        dinas_clean = extract_nama_dinas(dinas_raw)
+                        dinas_match = cocokkan_dinas(dinas_clean, list_dinas)
+        
+                        st.info(f"📄 Dinas di file: {dinas_clean}")
+        
+                        if dinas_match == st.session_state.dinas:
+        
+                            data = df.iloc[7:].copy()
+                            data = data[[0,1,8,9]]
+                            data.columns = ["kode","nama","debit","kredit"]
+        
+                            data["kode"] = (
+                                data["kode"]
+                                .astype(str)
+                                .str.replace(".", "", regex=False)
+                                .str.strip()
+                            )
+        
+                            data_8102 = data[data["kode"].str.startswith("8102")].copy()
+        
+                            def clean_angka(x):
+                                if pd.isna(x):
+                                    return 0
+                                x = str(x)
+                                x = x.replace(".", "")
+                                x = x.replace(",", ".")
+                                return pd.to_numeric(x, errors="coerce")
+        
+                            data_8102["debit"] = data_8102["debit"].apply(clean_angka).fillna(0)
+                            data_8102["kredit"] = data_8102["kredit"].apply(clean_angka).fillna(0)
+        
+                            data_8102["saldo"] = data_8102["debit"] - data_8102["kredit"]
+        
+                            total_saldo = data_8102["saldo"].sum()
+        
+                            # ❗ VALIDASI HARUS EXACT (SAMAIN DENGAN LOKAL)
+                            if total_saldo != total_siap_db:
+        
+                                selisih = total_saldo - total_siap_db
+        
+                                st.error(f"""
+                                ❌ Total SIPD tidak sama dengan SIAP  
+                                SIAP : Rp {format_rupiah(total_siap_db)}  
+                                SIPD : Rp {format_rupiah(total_saldo)}  
+                                Selisih : Rp {format_rupiah(selisih)}
+                                """)
+                                st.stop()
+                            else:
+                                st.success("✅ Total SIPD sudah sama dengan SIAP")
+        
+                            st.success("✅ Data siap disimpan")
+        
+                            if st.button("💾 Simpan SIPD ke Database"):
+        
+                                supabase.table("neraca_sipd") \
+                                    .delete() \
+                                    .eq("dinas", st.session_state.dinas) \
+                                    .execute()
+        
+                                to_db = []
+                                for _, r in data_8102.iterrows():
+                                    to_db.append({
+                                        "dinas": st.session_state.dinas,
+                                        "kode_rekening": r["kode"],
+                                        "nama_rekening": r["nama"],
+                                        "saldo_akhir": float(r["saldo"]),
+                                        "is_active": True
+                                    })
+        
+                                supabase.table("neraca_sipd").insert(to_db).execute()
+        
+                                st.session_state.mode_revisi_sipd = False
+                                st.rerun()
+        
+                        else:
+                            st.warning("⚠️ Dinas tidak sesuai")
+        
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+        
+        # =========================
+        # PERBANDINGAN (FINAL)
+        # =========================
+        if (
+            st.session_state.get("hitung_selisih", False)
+            and st.session_state.sudah_simpan_siap
+        ):
+        
+            res_siap = supabase.table("neraca_siap") \
+                .select("kode_rekening,nama_rekening,saldo_akhir") \
+                .eq("dinas", st.session_state.dinas).execute()
+        
+            res_sipd = supabase.table("neraca_sipd") \
+                .select("kode_rekening,nama_rekening,saldo_akhir") \
+                .eq("dinas", st.session_state.dinas).execute()
+        
+            df_siap = pd.DataFrame(res_siap.data)
+            df_sipd = pd.DataFrame(res_sipd.data)
+        
+            df_siap = df_siap.rename(columns={"saldo_akhir": "siap"})
+            df_sipd = df_sipd.rename(columns={"saldo_akhir": "sipd"})
+        
+            df_siap["siap"] = pd.to_numeric(df_siap["siap"], errors="coerce").fillna(0)
+            df_sipd["sipd"] = pd.to_numeric(df_sipd["sipd"], errors="coerce").fillna(0)
+        
+            df_merge = pd.merge(
+                df_siap,
+                df_sipd,
+                on=["kode_rekening"],
+                how="outer",
+                suffixes=("_siap", "_sipd")
+            )
+        
+            df_merge["nama_rekening"] = df_merge["nama_rekening_siap"].combine_first(
+                df_merge["nama_rekening_sipd"]
+            )
+        
+            df_merge["siap"] = df_merge["siap"].fillna(0)
+            df_merge["sipd"] = df_merge["sipd"].fillna(0)
+        
+            df_merge["selisih"] = df_merge["siap"] - df_merge["sipd"]
+        
+            st.session_state.df_merge = df_merge
+        
+            st.subheader("📊 Perbandingan SIAP vs SIPD")
+            st.dataframe(df_merge, use_container_width=True)
+        
+            # =========================
+            # SIMPAN HASIL
+            # =========================
+            if st.button("💾 Simpan Hasil Perbandingan"):
+        
+                supabase.table("hasil_perbandingan") \
+                    .delete() \
+                    .eq("dinas", st.session_state.dinas) \
+                    .execute()
+        
+                insert_data = []
+        
+                for _, row in df_merge.iterrows():
+        
+                    if row["selisih"] == 0:
+                        continue
+        
+                    debit = row["selisih"] if row["selisih"] > 0 else 0
+                    kredit = abs(row["selisih"]) if row["selisih"] < 0 else 0
+        
+                    insert_data.append({
+                        "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
+                        "tanggal_bukti": "2025-12-31",
+                        "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
+                        "kode_bas": row["kode_rekening"],
+                        "uraian": row["nama_rekening"],
+                        "debit": debit,
+                        "kredit": kredit,
+                        "keterangan_rinci": "-",
+                        "dinas": st.session_state.dinas,
+                        "is_active": True
+                    })
+        
+                if insert_data:
+                    supabase.table("hasil_perbandingan").insert(insert_data).execute()
+        
+                st.success("✅ Hasil berhasil disimpan")
