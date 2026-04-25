@@ -7,6 +7,33 @@ from io import BytesIO
 
 st.set_page_config(page_title="BBJ Reviu", layout="wide")
 
+import streamlit as st
+from supabase import create_client
+
+# 1. Inisialisasi koneksi menggunakan Secrets yang tadi disimpan
+url = st.secrets["supabase"]["url"]
+key = st.secrets["supabase"]["key"]
+supabase = create_client(url, key)
+
+st.title("Dashboard Monitoring QA")
+st.write("Aplikasi ini terhubung langsung ke Supabase.")
+
+# 2. Fungsi untuk mengambil data
+# Ganti 'nama_tabel_anda' dengan nama tabel yang ada di database Supabase Anda
+try:
+    response = supabase.table("nama_tabel_anda").select("*").execute()
+    data = response.data
+
+    if data:
+        st.success("Berhasil mengambil data!")
+        st.write("Berikut adalah data terbaru untuk di-review:")
+        st.dataframe(data) # Menampilkan data dalam bentuk tabel interaktif
+    else:
+        st.warning("Koneksi berhasil, tapi tabel sepertinya masih kosong.")
+except Exception as e:
+    st.error(f"Gagal mengambil data. Error: {e}")
+    st.info("Pastikan nama tabel di kode ini sudah sesuai dengan yang ada di Supabase.")
+
 # =========================
 # POSTGRES CONNECTION
 # =========================
