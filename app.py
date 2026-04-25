@@ -378,23 +378,23 @@ if st.session_state.load_dinas:
 
                 if st.button("💾 Simpan SIPD"):
                      st.write("DEBUG: tombol kepencet")
-                    supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
+                        supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
 
-                    data_insert = [
-                            {
-                                "dinas": match,
-                                "kode_rekening": r["kode"],
-                                "nama_rekening": r["nama"],
-                                "saldo_akhir": float(r["saldo"]),
-                                "is_active": True
-                            } for _, r in data_8102.iterrows()
-                        ]
-                        
-                        # 🔥 insert bertahap
-                    for i in range(0, len(data_insert), 500):
-                        supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
-
-                    st.rerun()  
+                        data_insert = [
+                                {
+                                    "dinas": match,
+                                    "kode_rekening": r["kode"],
+                                    "nama_rekening": r["nama"],
+                                    "saldo_akhir": float(r["saldo"]),
+                                    "is_active": True
+                                } for _, r in data_8102.iterrows()
+                            ]
+                            
+                            # 🔥 insert bertahap
+                        for i in range(0, len(data_insert), 500):
+                            supabase.table("neraca_sipd").insert(data_insert[i:i+500]).execute()
+    
+                        st.rerun()  
 
 # =========================
 # PERBANDINGAN + EXPORT (FINAL)
