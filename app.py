@@ -266,14 +266,14 @@ if st.session_state.load_dinas:
                 nilai_bbj = data_8102[data_8102["kode"]=="810299999999"]["saldo"].sum()
                 
                 if nilai_bbj != 0:
-                st.error(f"""
-                ❌ Masih ada BBJ BLUD!
-                
-                Nilai 810299999999: Rp {format_rupiah(nilai_bbj)}
-                
-                Silakan revisi terlebih dahulu.
-                """)
-                st.stop()
+                    st.error(f"""
+                    ❌ Masih ada BBJ BLUD!
+                    
+                    Nilai 810299999999: Rp {format_rupiah(nilai_bbj)}
+                    
+                    Silakan revisi terlebih dahulu.
+                    """)
+                    st.stop()
                 
                 if st.button("💾 Simpan SIAP ke Database"):
 
