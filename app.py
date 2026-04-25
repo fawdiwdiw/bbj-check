@@ -394,17 +394,25 @@ if st.session_state.load_dinas:
 
                          
 # ==================================
-# 1. TOMBOL PEMICU (HITUNG SELISIH)
+# 1. TOMBOL PEMICU (HITUNG SELISIH) - FIX HILANG
 # ==================================
-# Tambahkan syarat: and not st.session_state.hitung_selisih
-if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd and not st.session_state.get("hitung_selisih"):
-    st.markdown("---")
-    if st.button("🔍 Hitung Selisih SIAP vs SIPD", use_container_width=True):
-        st.session_state.hitung_selisih = True
-        st.session_state.boleh_simpan = True
-        st.session_state.sudah_simpan_jurnal = False
-        st.rerun()
-
+if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
+    # Buat container kosong
+    placeholder_tombol = st.empty()
+    
+    # Tombol hanya digambar di dalam placeholder jika hitung_selisih masih False
+    if not st.session_state.get("hitung_selisih"):
+        with placeholder_tombol:
+            if st.button("🔍 Hitung Selisih SIAP vs SIPD", use_container_width=True, key="btn_hitung_utama"):
+                st.session_state.hitung_selisih = True
+                st.session_state.boleh_simpan = True
+                st.session_state.sudah_simpan_jurnal = False
+                # Paksa placeholder kosong sebelum rerun
+                placeholder_tombol.empty()
+                st.rerun()
+    else:
+        # Jika sudah diklik, pastikan placeholder benar-benar kosong
+        placeholder_tombol.empty()
 # ==================================
 # 2. BLOK LOGIKA & TAMPILAN TABEL
 # ==================================
