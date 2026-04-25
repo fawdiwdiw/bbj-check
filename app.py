@@ -358,6 +358,8 @@ if st.session_state.load_dinas:
 
                 data["saldo"] = data["debit"] - data["kredit"]
                 data_8102 = data[data["kode"].str.startswith("8102")]
+                st.session_state.data_sipd_fix = data_8102.copy()
+                st.session_state.match_sipd = match
 
                 total = data_8102["saldo"].sum()
 
@@ -385,6 +387,13 @@ if st.session_state.load_dinas:
                 """, unsafe_allow_html=True)
 
                 if st.button("💾 Simpan SIPD", key="btn_simpan_sipd"):
+
+                    if "data_sipd_fix" not in st.session_state:
+                        st.error("Data belum siap disimpan")
+                        st.stop()
+                
+                    data_8102 = st.session_state.data_sipd_fix
+                    match = st.session_state.match_sipd
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
                     data_insert = [
                                 {
