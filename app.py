@@ -396,8 +396,7 @@ if st.session_state.load_dinas:
 # =========================
 if not st.session_state.get("hitung_selisih"):
     st.stop()
-
-    # =========================
+# =========================
     # AMBIL DATA
     # =========================
     df1 = pd.DataFrame(get_siap(st.session_state.dinas))
@@ -513,6 +512,7 @@ if not st.session_state.get("hitung_selisih"):
         Total Selisih : Rp {format_rupiah(total_selisih)}
     </div>
     """, unsafe_allow_html=True)
+    
 
         # =========================
     # SIMPAN JURNAL
