@@ -290,7 +290,7 @@ if st.session_state.load_dinas:
                     st.stop()
                 
                 # kalau balance
-                st.success("✅ Balance")
+                st.success("✅ Balance dengan SIAP")
                 
                 st.markdown(f"""
                 <div style="padding:10px;border-radius:10px;background:#e6f4ea;">
