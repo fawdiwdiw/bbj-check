@@ -532,7 +532,7 @@ if st.session_state.get("hitung_selisih"):
             # ✅ FORMAT ANGKA 2 DESIMAL
             for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
                 for cell in row:
-                    cell.number_format = '#,##0.00'
+                    cell.number_format = '0.00'
 
         output.seek(0)
 
