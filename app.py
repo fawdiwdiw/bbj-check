@@ -214,12 +214,12 @@ if st.session_state.load_dinas:
     # =========================
     with col1:
 
-        res = supabase.table("neraca_siap")\
-            .select("saldo_akhir")\
-            .eq("dinas", st.session_state.dinas)\
-            .execute()
+        data_siap = get_siap(st.session_state.dinas)
+        df_siap = pd.DataFrame(data_siap)
+        
+        total_db = df_siap["saldo_akhir"].astype(float).sum() if not df_siap.empty else 0
 
-        total_db = sum(float(x["saldo_akhir"]) for x in res.data) if res.data else 0
+        #total_db = sum(float(x["saldo_akhir"]) for x in res.data) if res.data else 0
         st.session_state.sudah_simpan_siap = total_db > 0
 
         st.subheader("📥 Neraca SIAP")
@@ -238,7 +238,7 @@ if st.session_state.load_dinas:
             file = st.file_uploader("Upload SIAP", type=["xlsx"], key=f"siap_{st.session_state.trigger_revisi_siap}")
 
             if file:
-                df = pd.read_excel(file, header=None, dtype=str)
+                df = pd.read_excel(file, header=None, dtype=str, usecols=[1,2,3,4,8])
 
                 dinas_file = extract_nama_dinas(df.iloc[5,4])
                 match = cocokkan_dinas(dinas_file)
@@ -292,12 +292,10 @@ if st.session_state.load_dinas:
     # =========================
     with col2:
 
-        res = supabase.table("neraca_sipd")\
-            .select("saldo_akhir")\
-            .eq("dinas", st.session_state.dinas)\
-            .execute()
-
-        total_db = sum(float(x["saldo_akhir"]) for x in res.data) if res.data else 0
+        data_sipd = get_sipd(st.session_state.dinas)
+        df_sipd = pd.DataFrame(data_sipd)
+        
+        total_db = df_sipd["saldo_akhir"].astype(float).sum() if not df_sipd.empty else 0
         sudah_simpan_sipd = total_db > 0
 
         res_siap = supabase.table("neraca_siap")\
@@ -329,7 +327,7 @@ if st.session_state.load_dinas:
             file = st.file_uploader("Upload SIPD", type=["xlsx"], key=f"sipd_{st.session_state.trigger_revisi_sipd}")
 
             if file:
-                df = pd.read_excel(file, header=None, dtype=str)
+                df = pd.read_excel(file, header=None, dtype=str, usecols=[0,1,8,9])
 
                 dinas_file = extract_nama_dinas(df.iloc[2,2])
                 match = cocokkan_dinas(dinas_file)
@@ -402,16 +400,8 @@ if not st.session_state.get("hitung_selisih"):
     # =========================
     # AMBIL DATA
     # =========================
-    res1 = supabase.table("neraca_siap") \
-        .select("kode_rekening,nama_rekening,saldo_akhir") \
-        .eq("dinas", st.session_state.dinas).execute()
-
-    res2 = supabase.table("neraca_sipd") \
-        .select("kode_rekening,nama_rekening,saldo_akhir") \
-        .eq("dinas", st.session_state.dinas).execute()
-
-    df1 = pd.DataFrame(res1.data)
-    df2 = pd.DataFrame(res2.data)
+    df1 = pd.DataFrame(get_siap(st.session_state.dinas))
+    df2 = pd.DataFrame(get_sipd(st.session_state.dinas))
     
     # =========================
     # HANDLE DF1 (SIAP)
@@ -495,7 +485,7 @@ if not st.session_state.get("hitung_selisih"):
         return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     df_display = df.copy()
-    df_display["siap"] = df_display["siap"].apply(fmt)
+    df_display = df.round(2)
     df_display["sipd"] = df_display["sipd"].apply(fmt)
     df_display["selisih"] = df_display["selisih"].apply(fmt)
 
@@ -537,23 +527,20 @@ if not st.session_state.get("hitung_selisih"):
     
             insert_data = []
     
-            for _, r in df.iterrows():
-    
-                if r["selisih"] == 0:
-                    continue
-    
-                insert_data.append({
-                    "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
-                    "tanggal_bukti": "2025-12-31",
-                    "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
-                    "kode_bas": r["kode_rekening"],
-                    "uraian": r["nama_rekening"],
-                    "debit": r["selisih"] if r["selisih"] > 0 else 0,
-                    "kredit": abs(r["selisih"]) if r["selisih"] < 0 else 0,
-                    "keterangan_rinci": "-",
-                    "dinas": st.session_state.dinas,
-                    "is_active": True
-                })
+            df_filtered = df[df["selisih"] != 0]
+
+            insert_data = df_filtered.apply(lambda r: {
+                "nomor_bukti": "JP Reviu Inspektorat/BBJ BLUD/2025",
+                "tanggal_bukti": "2025-12-31",
+                "keterangan": f"Jurnal Rinci BBJ BLUD {st.session_state.dinas}",
+                "kode_bas": r["kode_rekening"],
+                "uraian": r["nama_rekening"],
+                "debit": r["selisih"] if r["selisih"] > 0 else 0,
+                "kredit": abs(r["selisih"]) if r["selisih"] < 0 else 0,
+                "keterangan_rinci": "-",
+                "dinas": st.session_state.dinas,
+                "is_active": True
+            }, axis=1).tolist()
     
             if insert_data:
                 supabase.table("hasil_perbandingan").insert(insert_data).execute()
