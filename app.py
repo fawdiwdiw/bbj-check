@@ -519,34 +519,34 @@ if res.data:
     output = BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    df_export_display.to_excel(
-        writer,
-        index=False,
-        sheet_name='jurnal'
-    )
-
-    ws = writer.sheets['jurnal']
-
-    # =========================
-    # ALIGNMENT VERTICAL ATAS
-    # =========================
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
-        for cell in row:
-            cell.alignment = Alignment(vertical="top")
-
-    # =========================
-    # AUTO WIDTH (RAPI)
-    # =========================
-    column_widths = {
-        "A": 45,
-        "B": 18,
-        "C": 60,
-        "D": 18,
-        "E": 45,
-        "F": 18,
-        "G": 18,
-        "H": 25
-    }
+        df_export_display.to_excel(
+            writer,
+            index=False,
+            sheet_name='jurnal'
+        )
+    
+        ws = writer.sheets['jurnal']
+    
+        # =========================
+        # ALIGNMENT VERTICAL ATAS
+        # =========================
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
+            for cell in row:
+                cell.alignment = Alignment(vertical="top")
+    
+        # =========================
+        # AUTO WIDTH (RAPI)
+        # =========================
+        column_widths = {
+            "A": 45,
+            "B": 18,
+            "C": 60,
+            "D": 18,
+            "E": 45,
+            "F": 18,
+            "G": 18,
+            "H": 25
+        }
 
         for col, width in column_widths.items():
             ws.column_dimensions[col].width = width
