@@ -313,12 +313,6 @@ if st.session_state.load_dinas:
                 st.session_state.trigger_revisi_sipd += 1
                 st.rerun()
             
-            if st.session_state.sudah_simpan_siap:
-                if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
-                    st.session_state.hitung_selisih = True
-                    st.session_state.boleh_simpan = True
-                    st.session_state.sudah_simpan_jurnal = False
-                    st.rerun()
 
         # Tampilan Form Upload
         else:
