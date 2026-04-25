@@ -515,8 +515,8 @@ st.markdown(f"""
     # =========================
     # SIMPAN JURNAL
     # =========================
-    if st.session_state.boleh_simpan:
-        if st.button("💾 Simpan Jurnal"):
+if st.session_state.boleh_simpan:
+    if st.button("💾 Simpan Jurnal"):
 
             supabase.table("hasil_perbandingan") \
                 .delete() \
