@@ -72,7 +72,9 @@ defaults = {
     "mode_revisi_sipd": False,
     "trigger_revisi_sipd": 0,
     "hitung_selisih": False,
-    "df_merge": None
+    "df_merge": None,
+    "boleh_simpan": False,
+    "sudah_simpan_jurnal": False,
 }
 for k,v in defaults.items():
     if k not in st.session_state:
@@ -306,6 +308,8 @@ if st.session_state.load_dinas:
             if st.session_state.sudah_simpan_siap:
                 if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
                     st.session_state.hitung_selisih = True
+                    st.session_state.boleh_simpan = True
+                    st.session_state.sudah_simpan_jurnal = False
 
         else:
 
@@ -379,7 +383,8 @@ if st.session_state.load_dinas:
 # =========================
 # PERBANDINGAN + EXPORT (FINAL)
 # =========================
-if st.session_state.get("hitung_selisih"):
+if not st.session_state.get("hitung_selisih"):
+    st.stop()
 
     # =========================
     # AMBIL DATA
@@ -509,7 +514,8 @@ if st.session_state.get("hitung_selisih"):
         # =========================
     # SIMPAN JURNAL
     # =========================
-    if st.button("💾 Simpan Jurnal"):
+    if st.session_state.boleh_simpan:
+        if st.button("💾 Simpan Jurnal"):
 
         supabase.table("hasil_perbandingan") \
             .delete() \
@@ -540,6 +546,7 @@ if st.session_state.get("hitung_selisih"):
             supabase.table("hasil_perbandingan").insert(insert_data).execute()
 
         st.success("✅ Jurnal berhasil disimpan")
+        st.session_state.sudah_simpan_jurnal = True
 
     # =========================
     # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
@@ -559,7 +566,7 @@ if st.session_state.get("hitung_selisih"):
         .order("kode_bas") \
         .execute()
 
-    if res.data:
+    if st.session_state.sudah_simpan_jurnal and res.data:
 
         df_export = pd.DataFrame(res.data)
 
