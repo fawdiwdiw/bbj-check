@@ -200,6 +200,9 @@ with st.expander("📂 Pilih Dinas BLUD", expanded=True):
     if st.button("🔍 Load"):
         st.session_state.load_dinas = True
         st.session_state.dinas = dinas
+        st.session_state.hitung_selisih = False 
+        st.session_state.sudah_simpan_jurnal = False
+        st.rerun()
 
 # =========================
 # MAIN
@@ -285,6 +288,7 @@ if st.session_state.load_dinas:
             if st.button("🔄 Upload Ulang SIAP"):
                 st.session_state.mode_revisi_siap = True
                 st.session_state.trigger_revisi_siap += 1
+                st.session_state.hitung_selisih = False
                 st.rerun()
     # =========================
     # SIPD (FINAL VERSION)
