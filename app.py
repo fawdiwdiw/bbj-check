@@ -275,7 +275,7 @@ if st.session_state.load_dinas:
                     """)
                     st.stop()
                 
-                if st.button("💾 Simpan SIAP ke Database"):
+                #if st.button("💾 Simpan SIAP ke Database"):
 
                 if st.button("💾 Simpan SIAP ke Database"):
                     supabase.table("neraca_siap").delete().eq("dinas", match).execute()
