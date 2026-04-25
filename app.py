@@ -190,16 +190,19 @@ def format_rupiah(angka):
 st.title("📊 Upload Neraca Saldo BLUD")
 
 with st.expander("📂 Pilih Dinas BLUD", expanded=True):
+    # 1. Simpan pilihan ke variabel sementara
     dinas_pilihan = st.selectbox("Pilih Dinas", list_dinas)
 
-    # --- LOGIKA RESET INSTAN ---
-    # Jika dinas yang dipilih di selectbox berbeda dengan dinas yang sedang di-load
-    if "dinas" in st.session_state and dinas_pilihan != st.session_state.dinas:
-        st.session_state.load_dinas = False
-        st.session_state.hitung_selisih = False
-        st.session_state.sudah_simpan_jurnal = False
-    # ---------------------------
+    # 2. JURUS RESET INSTAN (Letakkan di luar tombol)
+    # Cek jika dinas yang dipilih di selectbox beda dengan yang terakhir di-load
+    if "dinas" in st.session_state:
+        if dinas_pilihan != st.session_state.dinas:
+            # Begitu nama diganti (sebelum klik Load), matikan semua status tabel
+            st.session_state.load_dinas = False
+            st.session_state.hitung_selisih = False
+            st.session_state.sudah_simpan_jurnal = False
 
+    # 3. Tombol Load
     if st.button("🔍 Load"):
         st.session_state.load_dinas = True
         st.session_state.dinas = dinas_pilihan
