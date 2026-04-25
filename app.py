@@ -282,7 +282,7 @@ if st.session_state.load_dinas:
                     selisih = total - total_siap
                 
                     st.error(f"""
-                    ❌ Tidak balance dengan SIAP  
+                    ❌ Tidak balance dengan SIAP, Silahkan revisi dahulu  
                     SIAP : Rp {format_rupiah(total_siap)}  
                     SIPD : Rp {format_rupiah(total)}  
                     Selisih : Rp {format_rupiah(selisih)}
