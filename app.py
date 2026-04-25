@@ -394,25 +394,22 @@ if st.session_state.load_dinas:
 
                          
 # ==================================
-# 1. TOMBOL PEMICU (HITUNG SELISIH) - FIX HILANG
+# 1. TOMBOL PEMICU (HITUNG SELISIH) - JURUS TERAKHIR
 # ==================================
 if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
-    # Buat container kosong
-    placeholder_tombol = st.empty()
     
-    # Tombol hanya digambar di dalam placeholder jika hitung_selisih masih False
-    if not st.session_state.get("hitung_selisih"):
-        with placeholder_tombol:
-            if st.button("🔍 Hitung Selisih SIAP vs SIPD", use_container_width=True, key="btn_hitung_utama"):
-                st.session_state.hitung_selisih = True
-                st.session_state.boleh_simpan = True
-                st.session_state.sudah_simpan_jurnal = False
-                # Paksa placeholder kosong sebelum rerun
-                placeholder_tombol.empty()
-                st.rerun()
-    else:
-        # Jika sudah diklik, pastikan placeholder benar-benar kosong
-        placeholder_tombol.empty()
+    # Tombol HANYA akan dirender jika hitung_selisih bernilai False
+    if st.session_state.get("hitung_selisih") == False:
+        st.markdown("---")
+        # Gunakan key unik yang digabung dengan nama dinas agar selalu fresh
+        key_tombol = f"btn_hitung_{st.session_state.dinas.replace(' ', '_')}"
+        
+        if st.button("🔍 Hitung Selisih SIAP vs SIPD", use_container_width=True, key=key_tombol):
+            st.session_state.hitung_selisih = True
+            st.session_state.boleh_simpan = True
+            st.session_state.sudah_simpan_jurnal = False
+            st.rerun()
+            
 # ==================================
 # 2. BLOK LOGIKA & TAMPILAN TABEL
 # ==================================
