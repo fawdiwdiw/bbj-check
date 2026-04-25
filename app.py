@@ -432,7 +432,7 @@ if st.session_state.get("hitung_selisih"):
     </div>
     """, unsafe_allow_html=True)
 
-    # =========================
+        # =========================
     # SIMPAN JURNAL
     # =========================
     if st.button("💾 Simpan Jurnal"):
@@ -468,92 +468,77 @@ if st.session_state.get("hitung_selisih"):
         st.success("✅ Jurnal berhasil disimpan")
 
     # =========================
-# EXPORT EXCEL (FINAL FIX SESUAI RULE)
-# =========================
-res = supabase.table("hasil_perbandingan") \
-    .select("""
-        nomor_bukti,
-        tanggal_bukti,
-        keterangan,
-        kode_bas,
-        uraian,
-        debit,
-        kredit,
-        keterangan_rinci
-    """) \
-    .eq("dinas", st.session_state.dinas) \
-    .order("kode_bas") \
-    .execute()
-
-if res.data:
-
-    df_export = pd.DataFrame(res.data)
-
+    # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
     # =========================
-    # RENAME KOLOM (BIAR SESUAI EXCEL)
-    # =========================
-    df_export.columns = [
-        "Nomor Bukti",
-        "Tanggal Bukti",
-        "Keterangan",
-        "Kode BAS",
-        "Uraian",
-        "Debit",
-        "Kredit",
-        "Keterangan Rinci"
-    ]
+    res = supabase.table("hasil_perbandingan") \
+        .select("""
+            nomor_bukti,
+            tanggal_bukti,
+            keterangan,
+            kode_bas,
+            uraian,
+            debit,
+            kredit,
+            keterangan_rinci
+        """) \
+        .eq("dinas", st.session_state.dinas) \
+        .order("kode_bas") \
+        .execute()
 
-    # =========================
-    # KOSONGKAN KOLOM A-C (BARIS KE-2 DST)
-    # =========================
-    df_export_display = df_export.copy()
+    if res.data:
 
-    cols_hide = ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]
+        df_export = pd.DataFrame(res.data)
 
-    for col in cols_hide:
-        df_export_display.loc[1:, col] = ""
+        df_export.columns = [
+            "Nomor Bukti",
+            "Tanggal Bukti",
+            "Keterangan",
+            "Kode BAS",
+            "Uraian",
+            "Debit",
+            "Kredit",
+            "Keterangan Rinci"
+        ]
 
-    # =========================
-    # BUAT EXCEL
-    # =========================
-    output = BytesIO()
+        # kosongkan kolom A-C baris ke-2 dst
+        df_export_display = df_export.copy()
+        for col in ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]:
+            df_export_display.loc[1:, col] = ""
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_export_display.to_excel(
-            writer,
-            index=False,
-            sheet_name='jurnal'
+        output = BytesIO()
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_export_display.to_excel(
+                writer,
+                index=False,
+                sheet_name='jurnal'
+            )
+
+            ws = writer.sheets['jurnal']
+
+            # alignment
+            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
+                for cell in row:
+                    cell.alignment = Alignment(vertical="top")
+
+            # width
+            widths = {
+                "A": 45, "B": 18, "C": 60, "D": 18,
+                "E": 45, "F": 18, "G": 18, "H": 25
+            }
+            for col, w in widths.items():
+                ws.column_dimensions[col].width = w
+
+            # ✅ FORMAT ANGKA 2 DESIMAL
+            for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
+                for cell in row:
+                    cell.number_format = '#,##0.00'
+
+        output.seek(0)
+
+        st.download_button(
+            label="📥 Download Excel Jurnal",
+            data=output,
+            file_name=f"Jurnal_{st.session_state.dinas}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    
-        ws = writer.sheets['jurnal']
-    
-        # =========================
-        # ALIGNMENT VERTICAL ATAS
-        # =========================
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=3):
-            for cell in row:
-                cell.alignment = Alignment(vertical="top")
-    
-        # =========================
-        # AUTO WIDTH (RAPI)
-        # =========================
-        column_widths = {
-            "A": 45,
-            "B": 18,
-            "C": 60,
-            "D": 18,
-            "E": 45,
-            "F": 18,
-            "G": 18,
-            "H": 25
-        }
-
-        for col, width in column_widths.items():
-            ws.column_dimensions[col].width = width
-    
-        # =========================
-        # 🔥 FORMAT ANGKA (INI YANG DITAMBAH)
-        # =========================
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
-            for cell in row:
-                cell.number_format = '#,##0.00'
