@@ -395,6 +395,19 @@ if st.session_state.get("hitung_selisih"):
     df1 = pd.DataFrame(res1.data)
     df2 = pd.DataFrame(res2.data)
 
+    if df2.empty:
+        df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening", "sipd"])
+    else:
+        df2 = df2.rename(columns={
+            "saldo_akhir": "sipd",
+            "nama_rekening": "nama_rekening_sipd"
+        })
+    
+        if "sipd" not in df2.columns:
+            df2["sipd"] = 0
+    
+    df2["sipd"] = pd.to_numeric(df2["sipd"], errors="coerce").fillna(0)
+
     # =========================
     # RENAME
     # =========================
