@@ -548,12 +548,12 @@ if res.data:
         "H": 25
     }
 
-    for col, width in column_widths.items():
-        ws.column_dimensions[col].width = width
-
-    # =========================
-    # 🔥 FORMAT ANGKA (INI YANG DITAMBAH)
-    # =========================
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
-        for cell in row:
-            cell.number_format = '#,##0.00'
+        for col, width in column_widths.items():
+            ws.column_dimensions[col].width = width
+    
+        # =========================
+        # 🔥 FORMAT ANGKA (INI YANG DITAMBAH)
+        # =========================
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=6, max_col=7):
+            for cell in row:
+                cell.number_format = '#,##0.00'
