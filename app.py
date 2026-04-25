@@ -517,7 +517,7 @@ if st.session_state.get("hitung_selisih"):
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df_export_final.to_excel(writer, index=False, sheet_name='jurnal')
-                ws = writer.sheets['Jurnal']
+                ws = writer.sheets['jurnal']
                 
                 # --- PENGATURAN FORMAT EXCEL ---
                 
