@@ -546,7 +546,7 @@ if not st.session_state.get("hitung_selisih"):
                 supabase.table("hasil_perbandingan").insert(insert_data).execute()
     
             st.success("✅ Jurnal berhasil disimpan")
-                st.session_state.sudah_simpan_jurnal = True
+            st.session_state.sudah_simpan_jurnal = True
     
         # =========================
         # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
