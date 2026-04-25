@@ -254,7 +254,7 @@ if st.session_state.load_dinas:
 
                 # VALIDASI BBJ
                 if not data_8102[data_8102["kode"]=="810299999999"]["saldo"].sum()==0:
-                    st.error("❌ Masih ada BBJ")
+                    st.error("❌ Masih ada BBJ BLUD, Silahkan revisi dahulu")
                     st.stop()
 
                 if st.button("💾 Simpan SIAP"):
