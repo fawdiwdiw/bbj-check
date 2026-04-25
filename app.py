@@ -15,6 +15,19 @@ url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
 
+
+@st.cache_data(ttl=60)
+def get_siap(dinas):
+    return supabase.table("neraca_siap") \
+        .select("kode_rekening,nama_rekening,saldo_akhir") \
+        .eq("dinas", dinas).execute().data
+
+@st.cache_data(ttl=60)
+def get_sipd(dinas):
+    return supabase.table("neraca_sipd") \
+        .select("kode_rekening,nama_rekening,saldo_akhir") \
+        .eq("dinas", dinas).execute().data
+
 # =========================
 # LOGIN FUNCTION
 # =========================
