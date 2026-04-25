@@ -279,10 +279,27 @@ if st.session_state.load_dinas:
                 total = data_8102["saldo"].sum()
 
                 if total != total_siap:
-                    st.error("❌ Tidak balance dengan SIAP")
+                    selisih = total - total_siap
+                
+                    st.error(f"""
+                    ❌ Tidak balance dengan SIAP  
+                    SIAP : Rp {format_rupiah(total_siap)}  
+                    SIPD : Rp {format_rupiah(total)}  
+                    Selisih : Rp {format_rupiah(selisih)}
+                    """)
                     st.stop()
-
+                
+                # kalau balance
                 st.success("✅ Balance")
+                
+                st.markdown(f"""
+                <div style="padding:10px;border-radius:10px;background:#e6f4ea;">
+                    <b>✅ Total SIPD</b><br>
+                    <span style="font-size:24px;font-weight:bold;">
+                        Rp {format_rupiah(total)}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
 
                 if st.button("💾 Simpan SIPD"):
                     supabase.table("neraca_sipd").delete().eq("dinas", match).execute()
