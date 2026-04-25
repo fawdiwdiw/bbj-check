@@ -383,103 +383,103 @@ if st.session_state.load_dinas:
                     st.success("✅ Data berhasil disimpan!")
                     st.rerun() 
 
-                         
-# =========================
-# TOMBOL HITUNG SELISIH
-# =========================
-if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
-    if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
-        st.session_state.hitung_selisih = True
-        st.session_state.boleh_simpan = True
-        st.session_state.sudah_simpan_jurnal = False
-        st.rerun()
-
-# =========================
-# STOP JIKA BELUM DIKLIK
-# =========================
-if not st.session_state.get("hitung_selisih"):
-    st.stop()
-
-# =========================
-# AMBIL DATA (WAJIB DI LUAR!)
-# =========================
-df1 = pd.DataFrame(get_siap(st.session_state.dinas))
-df2 = pd.DataFrame(get_sipd(st.session_state.dinas))
-
-# =========================
-# HANDLE SIAP
-# =========================
-if df1.empty:
-    df1 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_siap", "siap"])
-else:
-    df1 = df1.rename(columns={
-        "saldo_akhir": "siap",
-        "nama_rekening": "nama_rekening_siap"
-    })
-
-# =========================
-# HANDLE SIPD
-# =========================
-if df2.empty:
-    df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_sipd", "sipd"])
-else:
-    df2 = df2.rename(columns={
-        "saldo_akhir": "sipd",
-        "nama_rekening": "nama_rekening_sipd"
-    })
-
-# =========================
-# PASTIKAN NUMERIC
-# =========================
-df1["siap"] = pd.to_numeric(df1.get("siap", 0), errors="coerce").fillna(0)
-df2["sipd"] = pd.to_numeric(df2.get("sipd", 0), errors="coerce").fillna(0)
-
-# =========================
-# MERGE
-# =========================
-df = pd.merge(df1, df2, on="kode_rekening", how="outer")
-
-# =========================
-# GABUNG NAMA
-# =========================
-df["nama_rekening"] = df.get("nama_rekening_siap").combine_first(
-    df.get("nama_rekening_sipd")
-)
-
-# =========================
-# HANDLE NULL
-# =========================
-df["siap"] = df["siap"].fillna(0)
-df["sipd"] = df["sipd"].fillna(0)
-
-# =========================
-# HITUNG SELISIH
-# =========================
-df["selisih"] = df["siap"] - df["sipd"]
-
-# =========================
-# FINAL KOLOM
-# =========================
-df = df[[
-    "kode_rekening",
-    "nama_rekening",
-    "siap",
-    "sipd",
-    "selisih"
-]]
-
-st.session_state.df_merge = df.copy()
-
-# =========================
-# FORMAT
-# =========================
-def fmt(x):
-    return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-df_display = df.copy()
-df_display["siap"] = df_display["siap"].apply(fmt)
-df_display["sipd"] = df_display["sipd"].apply(fmt)
-df_display["selisih"] = df_display["selisih"].apply(fmt)
+                             
+    # =========================
+    # TOMBOL HITUNG SELISIH
+    # =========================
+    if st.session_state.sudah_simpan_siap and st.session_state.sudah_simpan_sipd:
+        if st.button("🔍 Hitung Selisih SIAP vs SIPD"):
+            st.session_state.hitung_selisih = True
+            st.session_state.boleh_simpan = True
+            st.session_state.sudah_simpan_jurnal = False
+            st.rerun()
+    
+    # =========================
+    # STOP JIKA BELUM DIKLIK
+    # =========================
+    if not st.session_state.get("hitung_selisih"):
+        st.stop()
+    
+    # =========================
+    # AMBIL DATA (WAJIB DI LUAR!)
+    # =========================
+    df1 = pd.DataFrame(get_siap(st.session_state.dinas))
+    df2 = pd.DataFrame(get_sipd(st.session_state.dinas))
+    
+    # =========================
+    # HANDLE SIAP
+    # =========================
+    if df1.empty:
+        df1 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_siap", "siap"])
+    else:
+        df1 = df1.rename(columns={
+            "saldo_akhir": "siap",
+            "nama_rekening": "nama_rekening_siap"
+        })
+    
+    # =========================
+    # HANDLE SIPD
+    # =========================
+    if df2.empty:
+        df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_sipd", "sipd"])
+    else:
+        df2 = df2.rename(columns={
+            "saldo_akhir": "sipd",
+            "nama_rekening": "nama_rekening_sipd"
+        })
+    
+    # =========================
+    # PASTIKAN NUMERIC
+    # =========================
+    df1["siap"] = pd.to_numeric(df1.get("siap", 0), errors="coerce").fillna(0)
+    df2["sipd"] = pd.to_numeric(df2.get("sipd", 0), errors="coerce").fillna(0)
+    
+    # =========================
+    # MERGE
+    # =========================
+    df = pd.merge(df1, df2, on="kode_rekening", how="outer")
+    
+    # =========================
+    # GABUNG NAMA
+    # =========================
+    df["nama_rekening"] = df.get("nama_rekening_siap").combine_first(
+        df.get("nama_rekening_sipd")
+    )
+    
+    # =========================
+    # HANDLE NULL
+    # =========================
+    df["siap"] = df["siap"].fillna(0)
+    df["sipd"] = df["sipd"].fillna(0)
+    
+    # =========================
+    # HITUNG SELISIH
+    # =========================
+    df["selisih"] = df["siap"] - df["sipd"]
+    
+    # =========================
+    # FINAL KOLOM
+    # =========================
+    df = df[[
+        "kode_rekening",
+        "nama_rekening",
+        "siap",
+        "sipd",
+        "selisih"
+    ]]
+    
+    st.session_state.df_merge = df.copy()
+    
+    # =========================
+    # FORMAT
+    # =========================
+    def fmt(x):
+        return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    df_display = df.copy()
+    df_display["siap"] = df_display["siap"].apply(fmt)
+    df_display["sipd"] = df_display["sipd"].apply(fmt)
+    df_display["selisih"] = df_display["selisih"].apply(fmt)
 
     # =========================
     # TAMPILKAN
