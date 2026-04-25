@@ -502,17 +502,50 @@ if st.session_state.get("hitung_selisih"):
         
         if res.data:
             df_export = pd.DataFrame(res.data)
-            # ... [Logika styling excel Anda yang sudah ada] ...
-            # [Pastikan variabel 'output' dari BytesIO diproses di sini]
             
+            # 1. Rapikan Nama Kolom
+            df_export.columns = [
+                "Nomor Bukti", "Tanggal Bukti", "Keterangan", 
+                "Kode BAS", "Uraian", "Debit", "Kredit", "Keterangan Rinci"
+            ]
+            
+            # 2. Kosongkan baris duplikat untuk Nomor Bukti s/d Keterangan (Agar rapi di Excel)
+            df_export_final = df_export.copy()
+            if len(df_export_final) > 1:
+                df_export_final.loc[1:, ["Nomor Bukti", "Tanggal Bukti", "Keterangan"]] = ""
+
+            # 3. PROSES PEMBUATAN EXCEL (Ke Memory/BytesIO)
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_export_final.to_excel(writer, index=False, sheet_name='Jurnal')
+                
+                # STYLING (Opsional tapi biar bagus)
+                ws = writer.sheets['Jurnal']
+                
+                # Set Width
+                widths = {'A': 40, 'B': 15, 'C': 50, 'D': 15, 'E': 40, 'F': 15, 'G': 15, 'H': 20}
+                for col, width in widths.items():
+                    ws.column_dimensions[col].width = width
+                
+                # Format Angka & Alignment
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+                    # Kolom F (Debit) dan G (Kredit)
+                    row[5].number_format = '#,##0.00'
+                    row[6].number_format = '#,##0.00'
+                    # Alignment Top untuk kolom keterangan
+                    for cell in row[:3]:
+                        cell.alignment = Alignment(vertical="top")
+
+            processed_data = output.getvalue()
+
+            # 4. Tampilkan Tombol Download
             st.download_button(
                 label="📥 Download Excel Jurnal",
-                data=output, # Sesuaikan dengan variabel BytesIO Anda
+                data=processed_data,
                 file_name=f"Jurnal_{st.session_state.dinas}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-
 
 
 
