@@ -487,6 +487,8 @@ if st.session_state.get("hitung_selisih"):
                 supabase.table("hasil_perbandingan").insert(insert_data).execute()
                 st.session_state.sudah_simpan_jurnal = True
                 st.success("✅ Jurnal berhasil disimpan!")
+                import time
+                time.sleep(1.5) 
                 st.rerun()
             else:
                 st.warning("Tidak ada selisih yang perlu dibuatkan jurnal.")
