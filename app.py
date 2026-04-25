@@ -549,7 +549,7 @@ if st.session_state.boleh_simpan:
         # =========================
         # EXPORT EXCEL (AUTO MUNCUL JIKA DATA ADA)
         # =========================
-        res = supabase.table("hasil_perbandingan") \
+    res = supabase.table("hasil_perbandingan") \
             .select("""
                 nomor_bukti,
                 tanggal_bukti,
