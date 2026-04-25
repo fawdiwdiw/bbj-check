@@ -526,19 +526,21 @@ if st.session_state.get("hitung_selisih"):
                 for col, width in widths.items():
                     ws.column_dimensions[col].width = width
                 
-                # 2. Format Angka (Kolom F & G) dan Alignment
+                # 2. Format Angka (Kolom F & G)
                 for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), start=2):
                     # Kolom Debit (Cell F)
                     cell_debit = ws.cell(row=row_idx, column=6)
-                    cell_debit.value = float(cell_debit.value) if cell_debit.value else 0
-                    cell_debit.number_format = '#,##0.00' # <--- Ini kuncinya!
+                    val_debit = float(cell_debit.value) if cell_debit.value else 0
+                    cell_debit.value = val_debit
+                    cell_debit.number_format = '0.00' # Di file aslinya 1000000.50, di Excel Indo jadi 1000000,50
                     
                     # Kolom Kredit (Cell G)
                     cell_kredit = ws.cell(row=row_idx, column=7)
-                    cell_kredit.value = float(cell_kredit.value) if cell_kredit.value else 0
-                    cell_kredit.number_format = '#,##0.00' # <--- Ini kuncinya!
+                    val_kredit = float(cell_kredit.value) if cell_kredit.value else 0
+                    cell_kredit.value = val_kredit
+                    cell_kredit.number_format = '0.00'
 
-                    # Alignment biar rapi
+                    # Alignment tetap rapi di atas
                     for cell in row:
                         cell.alignment = Alignment(vertical="top")
 
