@@ -317,53 +317,149 @@ if st.session_state.load_dinas:
                     st.rerun()
 
 # =========================
-# PERBANDINGAN + EXPORT
+# PERBANDINGAN + EXPORT (FIX SESUAI RULE)
 # =========================
 if st.session_state.get("hitung_selisih"):
 
-    res1 = supabase.table("neraca_siap").select("*").eq("dinas", st.session_state.dinas).execute()
-    res2 = supabase.table("neraca_sipd").select("*").eq("dinas", st.session_state.dinas).execute()
+    res1 = supabase.table("neraca_siap") \
+        .select("kode_rekening,nama_rekening,saldo_akhir") \
+        .eq("dinas", st.session_state.dinas).execute()
+
+    res2 = supabase.table("neraca_sipd") \
+        .select("kode_rekening,nama_rekening,saldo_akhir") \
+        .eq("dinas", st.session_state.dinas).execute()
 
     df1 = pd.DataFrame(res1.data)
     df2 = pd.DataFrame(res2.data)
 
+    # =========================
+    # RENAME
+    # =========================
     df1 = df1.rename(columns={"saldo_akhir":"siap"})
     df2 = df2.rename(columns={"saldo_akhir":"sipd"})
 
-    df = pd.merge(df1, df2, on="kode_rekening", how="outer", suffixes=("_siap","_sipd"))
-    df["nama_rekening"] = df["nama_rekening_siap"].combine_first(df["nama_rekening_sipd"])
-    df["siap"] = df["siap"].fillna(0)
+    # =========================
+    # NUMERIC
+    # =========================
+    df1["siap"] = pd.to_numeric(df1["siap"], errors="coerce").fillna(0)
+    df2["sipd"] = pd.to_numeric(df2["sipd"], errors="coerce").fillna(0)
+
+    # =========================
+    # MERGE (LEFT → IKUT SIAP)
+    # =========================
+    df = pd.merge(
+        df1,
+        df2[["kode_rekening","sipd"]],
+        on="kode_rekening",
+        how="left"
+    )
+
     df["sipd"] = df["sipd"].fillna(0)
+
+    # =========================
+    # HITUNG SELISIH
+    # =========================
     df["selisih"] = df["siap"] - df["sipd"]
 
-    st.dataframe(df)
+    # =========================
+    # PILIH KOLOM FINAL
+    # =========================
+    df = df[[
+        "kode_rekening",
+        "nama_rekening",
+        "siap",
+        "sipd",
+        "selisih"
+    ]]
 
+    st.session_state.df_merge = df.copy()
+
+    # =========================
+    # FORMAT DISPLAY
+    # =========================
+    def fmt(x):
+        return f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    df_display = df.copy()
+    df_display["siap"] = df_display["siap"].apply(fmt)
+    df_display["sipd"] = df_display["sipd"].apply(fmt)
+    df_display["selisih"] = df_display["selisih"].apply(fmt)
+
+    st.subheader("📊 Perbandingan SIAP vs SIPD")
+    st.dataframe(df_display, use_container_width=True)
+
+    # =========================
+    # TOTAL SELISIH
+    # =========================
+    total_selisih = df["selisih"].sum()
+
+    st.markdown(f"""
+    <div style="
+        margin-top:10px;
+        padding:10px;
+        border-radius:10px;
+        background-color:#f0f2f6;
+        text-align:right;
+        font-size:20px;
+        font-weight:bold;
+    ">
+        Total Selisih : Rp {format_rupiah(total_selisih)}
+    </div>
+    """, unsafe_allow_html=True)
+
+    # =========================
+    # SIMPAN JURNAL
+    # =========================
     if st.button("💾 Simpan Jurnal"):
-        supabase.table("hasil_perbandingan").delete().eq("dinas", st.session_state.dinas).execute()
 
-        supabase.table("hasil_perbandingan").insert([
-            {
+        supabase.table("hasil_perbandingan") \
+            .delete() \
+            .eq("dinas", st.session_state.dinas) \
+            .execute()
+
+        insert_data = []
+
+        for _, r in df.iterrows():
+            if r["selisih"] == 0:
+                continue
+
+            insert_data.append({
                 "nomor_bukti": "JP",
                 "tanggal_bukti": "2025-12-31",
                 "keterangan": "Jurnal",
                 "kode_bas": r["kode_rekening"],
                 "uraian": r["nama_rekening"],
-                "debit": r["selisih"] if r["selisih"]>0 else 0,
-                "kredit": abs(r["selisih"]) if r["selisih"]<0 else 0,
+                "debit": r["selisih"] if r["selisih"] > 0 else 0,
+                "kredit": abs(r["selisih"]) if r["selisih"] < 0 else 0,
                 "keterangan_rinci": "-",
                 "dinas": st.session_state.dinas,
                 "is_active": True
-            } for _,r in df.iterrows() if r["selisih"]!=0
-        ]).execute()
+            })
 
-    # EXPORT
-    res = supabase.table("hasil_perbandingan").select("*").eq("dinas", st.session_state.dinas).execute()
+        if insert_data:
+            supabase.table("hasil_perbandingan").insert(insert_data).execute()
+
+        st.success("✅ Jurnal berhasil disimpan")
+
+    # =========================
+    # EXPORT EXCEL
+    # =========================
+    res = supabase.table("hasil_perbandingan") \
+        .select("*") \
+        .eq("dinas", st.session_state.dinas).execute()
+
     if res.data:
 
-        df = pd.DataFrame(res.data)
+        df_export = pd.DataFrame(res.data)
 
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False)
+            df_export.to_excel(writer, index=False, sheet_name='jurnal')
 
-        st.download_button("📥 Download Excel", data=output, file_name="jurnal.xlsx")
+        output.seek(0)
+
+        st.download_button(
+            "📥 Download Excel",
+            data=output,
+            file_name=f"Jurnal_{st.session_state.dinas}.xlsx"
+        )
