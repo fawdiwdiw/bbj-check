@@ -394,9 +394,26 @@ if st.session_state.get("hitung_selisih"):
 
     df1 = pd.DataFrame(res1.data)
     df2 = pd.DataFrame(res2.data)
-
+    
+    # =========================
+    # HANDLE DF1 (SIAP)
+    # =========================
+    if df1.empty:
+        df1 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_siap", "siap"])
+    else:
+        df1 = df1.rename(columns={
+            "saldo_akhir": "siap",
+            "nama_rekening": "nama_rekening_siap"
+        })
+    
+        if "siap" not in df1.columns:
+            df1["siap"] = 0
+    
+    # =========================
+    # HANDLE DF2 (SIPD)
+    # =========================
     if df2.empty:
-        df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening", "sipd"])
+        df2 = pd.DataFrame(columns=["kode_rekening", "nama_rekening_sipd", "sipd"])
     else:
         df2 = df2.rename(columns={
             "saldo_akhir": "sipd",
@@ -406,27 +423,11 @@ if st.session_state.get("hitung_selisih"):
         if "sipd" not in df2.columns:
             df2["sipd"] = 0
     
-    df2["sipd"] = pd.to_numeric(df2["sipd"], errors="coerce").fillna(0)
-
     # =========================
-    # RENAME
-    # =========================
-    df1 = df1.rename(columns={
-        "saldo_akhir": "siap",
-        "nama_rekening": "nama_rekening_siap"
-    })
-
-    df2 = df2.rename(columns={
-        "saldo_akhir": "sipd",
-        "nama_rekening": "nama_rekening_sipd"
-    })
-
-    # =========================
-    # NUMERIC
+    # PASTIKAN NUMERIC
     # =========================
     df1["siap"] = pd.to_numeric(df1["siap"], errors="coerce").fillna(0)
     df2["sipd"] = pd.to_numeric(df2["sipd"], errors="coerce").fillna(0)
-
     # =========================
     # MERGE (GABUNGAN)
     # =========================
