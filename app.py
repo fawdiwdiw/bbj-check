@@ -269,7 +269,7 @@ if st.session_state.load_dinas:
                     st.error(f"""
                     ❌ Masih ada BBJ BLUD!
                     
-                    Nilai 810299999999: Rp {format_rupiah(nilai_bbj)}
+                    Senilai Rp {format_rupiah(nilai_bbj)}
                     
                     Silakan revisi terlebih dahulu.
                     """)
