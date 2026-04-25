@@ -342,6 +342,7 @@ if st.session_state.load_dinas:
                     ❌ Tidak balance dengan SIAP!
                     
                     **Total SIAP** : Rp {format_rupiah(total_siap)}
+                    
                     **Total SIPD** : Rp {format_rupiah(total_excel)}
                     
                     **Selisih** : Rp {format_rupiah(total_excel - total_siap)}
