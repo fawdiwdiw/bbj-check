@@ -325,6 +325,11 @@ if st.session_state.load_dinas:
         else:
 
             file = st.file_uploader("Upload SIPD", type=["xlsx"], key=f"sipd_{st.session_state.trigger_revisi_sipd}")
+            if file:
+                st.session_state.file_sipd = file
+            
+            if "file_sipd" in st.session_state:
+                file = st.session_state.file_sipd
 
             if file:
                 df = pd.read_excel(file, header=None, dtype=str)
