@@ -238,7 +238,7 @@ if st.session_state.load_dinas:
             file = st.file_uploader("Upload SIAP", type=["xlsx"], key=f"siap_{st.session_state.trigger_revisi_siap}")
 
             if file:
-                df = pd.read_excel(file, header=None, dtype=str, usecols=[1,2,3,4,8])
+                df = pd.read_excel(file, header=None, dtype=str)
 
                 dinas_file = extract_nama_dinas(df.iloc[5,4])
                 match = cocokkan_dinas(dinas_file)
@@ -327,7 +327,7 @@ if st.session_state.load_dinas:
             file = st.file_uploader("Upload SIPD", type=["xlsx"], key=f"sipd_{st.session_state.trigger_revisi_sipd}")
 
             if file:
-                df = pd.read_excel(file, header=None, dtype=str, usecols=[0,1,8,9])
+                df = pd.read_excel(file, header=None, dtype=str)
 
                 dinas_file = extract_nama_dinas(df.iloc[2,2])
                 match = cocokkan_dinas(dinas_file)
