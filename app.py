@@ -21,7 +21,7 @@ st.write("Aplikasi ini terhubung langsung ke Supabase.")
 # 2. Fungsi untuk mengambil data
 # Ganti 'nama_tabel_anda' dengan nama tabel yang ada di database Supabase Anda
 try:
-    response = supabase.table("nama_tabel_anda").select("*").execute()
+    response = supabase.table("user_login").select("*").execute()
     data = response.data
 
     if data:
